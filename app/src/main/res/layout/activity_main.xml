@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/mainToolbar"
@@ -10,37 +11,47 @@
         android:layout_height="?attr/actionBarSize"
         android:layout_gravity="top"/>
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical">
+    <FrameLayout
+        android:id="@+id/drawer_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/mainEditorBtn"
-            android:layout_width="@dimen/main_button_width"
-            android:layout_height="wrap_content"
-            android:layout_margin="@dimen/main_button_margin"
-            android:drawableStart="@drawable/ic_mode_edit_white_24dp"
-            android:gravity="center"
-            android:text="@string/main_editor"/>
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/mainGalleryBtn"
-            android:layout_width="@dimen/main_button_width"
-            android:layout_height="wrap_content"
-            android:layout_margin="@dimen/main_button_margin"
-            android:drawableStart="@drawable/ic_grid_on_white_24dp"
-            android:text="@string/main_gallery"/>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical">
 
-        <Button
-            android:id="@+id/mainAboutBtn"
-            android:layout_width="@dimen/main_button_width"
-            android:layout_height="wrap_content"
-            android:layout_margin="@dimen/main_button_margin"
-            android:drawableStart="@drawable/ic_info_outline_white_24dp"
-            android:text="@string/main_adout"/>
+                <Button
+                    android:id="@+id/mainEditorBtn"
+                    android:layout_width="@dimen/main_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/main_button_margin"
+                    android:drawableStart="@drawable/ic_mode_edit_white_24dp"
+                    android:gravity="center"
+                    android:text="@string/main_editor"/>
 
-    </LinearLayout>
+                <Button
+                    android:id="@+id/mainGalleryBtn"
+                    android:layout_width="@dimen/main_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/main_button_margin"
+                    android:drawableStart="@drawable/ic_grid_on_white_24dp"
+                    android:text="@string/main_gallery"/>
 
-</FrameLayout>
+                <Button
+                    android:id="@+id/mainAboutBtn"
+                    android:layout_width="@dimen/main_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/main_button_margin"
+                    android:drawableStart="@drawable/ic_info_outline_white_24dp"
+                    android:text="@string/main_adout"/>
+
+            </LinearLayout>
+        </FrameLayout>
+    </FrameLayout>
+</LinearLayout>

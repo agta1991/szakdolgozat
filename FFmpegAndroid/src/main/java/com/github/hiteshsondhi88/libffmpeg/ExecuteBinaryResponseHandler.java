@@ -1,29 +1,19 @@
 package com.github.hiteshsondhi88.libffmpeg;
 
-public class ExecuteBinaryResponseHandler implements ExecuteResponseHandler {
+public abstract class ExecuteBinaryResponseHandler implements ExecuteResponseHandler {
 
     @Override
-    public void onSuccess(String message) {
-
-    }
+    public abstract void onSuccess(String message);
 
     @Override
-    public void onProgress(String message) {
-
-    }
+    public abstract void onProgress(String message);
 
     @Override
-    public void onFailure(String message) {
-
-    }
+    public abstract void onFailure(String message);
 
     @Override
-    public void onStart() {
-
-    }
+    public abstract void onStart();
 
     @Override
-    public void onFinish() {
-
-    }
+    public abstract void onFinish();
 }

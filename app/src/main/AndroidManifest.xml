@@ -1,6 +1,7 @@
 <manifest
     package="hu.bme.agocs.videoeditor.videoeditor"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <application
         android:name=".presentation.VideoEditor"
@@ -20,8 +21,7 @@
         </activity>
 
         <activity
-            android:name=".presentation.view.gallery.GalleryActivity"
-            android:screenOrientation="portrait">
+            android:name=".presentation.view.gallery.GalleryActivity">
         </activity>
 
         <activity

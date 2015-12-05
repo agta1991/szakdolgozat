@@ -1,12 +1,19 @@
 package hu.bme.agocs.videoeditor.videoeditor.data;
 
+import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.exceptions.CommandAlreadyRunningException;
 import com.github.hiteshsondhi88.libffmpeg.ffmpeg.FFmpeg;
 import com.github.hiteshsondhi88.libffmpeg.ffmpeg.FFmpegLoadBinaryResponseHandler;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.NotSupportedException;
 import com.github.hiteshsondhi88.libffmpeg.ffprobe.FFprobe;
 import com.github.hiteshsondhi88.libffmpeg.ffprobe.FFprobeLoadBinaryResponseHandler;
 
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.FFmpegTask;
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.ProcessUpdate;
+import hu.bme.agocs.videoeditor.videoeditor.data.enums.ProcessUpdateType;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.VideoEditor;
+import rx.Observable;
 import timber.log.Timber;
 
 /**
@@ -87,5 +94,50 @@ public class VideoManager {
             isInitialized = false;
             e.printStackTrace();
         }
+    }
+
+    public Observable<ProcessUpdate> singleTask(FFmpegTask task) {
+        return Observable.create(subscriber -> {
+            Timber.i("Single task started with command: \n" + task.getParameters());
+            try {
+                ffmpeg.execute(task.getParameters(), new ExecuteBinaryResponseHandler() {
+                    @Override
+                    public void onSuccess(String message) {
+                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FAILURE, message));
+                        Timber.i("onSuccess: " + message);
+                    }
+
+                    @Override
+                    public void onProgress(String message) {
+                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FAILURE, message));
+                        Timber.i("onProgress: " + message);
+                    }
+
+                    @Override
+                    public void onFailure(String message) {
+                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FAILURE, message));
+                        Timber.e("onFailure: " + message);
+                    }
+
+                    @Override
+                    public void onStart() {
+                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.START, null));
+                        Timber.i("onStart");
+                    }
+
+                    @Override
+                    public void onFinish() {
+                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FINISH, null));
+                        Timber.i("onFinish");
+                        subscriber.onCompleted();
+                    }
+                });
+            } catch (CommandAlreadyRunningException e) {
+                subscriber.onError(new Exception("FFmpeg command already running."));
+                Timber.e(e, "FFmpeg command already running.");
+                subscriber.onCompleted();
+            }
+
+        });
     }
 }

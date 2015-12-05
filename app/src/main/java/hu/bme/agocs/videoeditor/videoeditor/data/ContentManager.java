@@ -1,6 +1,8 @@
 package hu.bme.agocs.videoeditor.videoeditor.data;
 
+import com.esotericsoftware.kryo.Kryo;
 import com.snappydb.DB;
+import com.snappydb.DBFactory;
 import com.snappydb.SnappyDB;
 import com.snappydb.SnappydbException;
 
@@ -22,19 +24,30 @@ import timber.log.Timber;
  */
 public class ContentManager {
 
-        
+    public static ContentManager instance;
+
+    public static ContentManager getInstance() {
+        if (instance == null) {
+            instance = new ContentManager();
+        }
+        return instance;
+    }
+
+    private ContentManager() {
+    }
 
     public Observable<ArrayList<MediaObject>> getMediaObjects() {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = new SnappyDB.Builder(VideoEditor.getContext())
-                        .directory(Constants.DB_FILE_NAME)
-                        .build();
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
 
-                MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
+                ArrayList<MediaObject> result = new ArrayList<>();
 
-                ArrayList<MediaObject> result = new ArrayList<>(Arrays.asList(mediaObjects));
+                if (db.exists(Constants.MEDIA_OBJECTS)) {
+                    MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
+                    result.addAll(Arrays.asList(mediaObjects));
+                }
 
                 subscriber.onNext(result);
 
@@ -52,13 +65,14 @@ public class ContentManager {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = new SnappyDB.Builder(VideoEditor.getContext())
-                        .directory(Constants.DB_FILE_NAME)
-                        .build();
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
 
-                MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
+                ArrayList<MediaObject> currentMediaObjects = new ArrayList<>();
 
-                ArrayList<MediaObject> currentMediaObjects = new ArrayList<>(Arrays.asList(mediaObjects));
+                if (db.exists(Constants.MEDIA_OBJECTS)) {
+                    MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
+                    currentMediaObjects.addAll(Arrays.asList(mediaObjects));
+                }
 
                 if (!currentMediaObjects.contains(mediaObject)) {
                     currentMediaObjects.add(mediaObject);

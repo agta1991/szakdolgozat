@@ -10,14 +10,20 @@ import hu.bme.agocs.videoeditor.videoeditor.presentation.view.init.IMainActivity
 public class MainPresenter extends MvpBasePresenter<IMainActivity>{
 
     public void editorClicked() {
-
+        if(isViewAttached()){
+            getView().navigateToEditor();
+        }
     }
 
     public void galleryClicked() {
-
+        if(isViewAttached()){
+            getView().navigateToGallery();
+        }
     }
 
     public void aboutClicked() {
-
+        if(isViewAttached()){
+            getView().navigateToAbout();
+        }
     }
 }

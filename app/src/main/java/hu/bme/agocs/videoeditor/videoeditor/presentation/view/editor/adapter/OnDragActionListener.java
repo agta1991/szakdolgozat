@@ -10,4 +10,6 @@ public interface OnDragActionListener {
     void onDragStarted(RecyclerView.ViewHolder holder);
 
     void onOuterDragEntered(DragEvent event, int position);
+
+    void onOuterDragExited(int position);
 }

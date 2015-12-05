@@ -1,5 +1,6 @@
 package hu.bme.agocs.videoeditor.videoeditor.presentation.view.init;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.Toolbar;
@@ -11,6 +12,10 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import hu.bme.agocs.videoeditor.videoeditor.R;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.presenter.MainPresenter;
+import hu.bme.agocs.videoeditor.videoeditor.presentation.view.about.AboutActivity;
+import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.EditorActivity;
+import hu.bme.agocs.videoeditor.videoeditor.presentation.view.gallery.GalleryActivity;
+import hu.bme.agocs.videoeditor.videoeditor.presentation.view.init.drawer.MainDrawer;
 
 /**
  * Created by Agócs Tamás on 2015. 12. 04..
@@ -49,5 +54,28 @@ public class MainActivity extends MvpActivity<IMainActivity, MainPresenter> impl
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
+        setSupportActionBar(mainToolbar);
+        setTitle("Video Editor");
+
+        MainDrawer drawer = new MainDrawer(this, mainToolbar);
+
+    }
+
+    @Override
+    public void navigateToEditor() {
+        Intent intent = new Intent(MainActivity.this, EditorActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
+    public void navigateToGallery() {
+        Intent intent = new Intent(MainActivity.this, GalleryActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
+    public void navigateToAbout() {
+        Intent intent = new Intent(MainActivity.this, AboutActivity.class);
+        startActivity(intent);
     }
 }
