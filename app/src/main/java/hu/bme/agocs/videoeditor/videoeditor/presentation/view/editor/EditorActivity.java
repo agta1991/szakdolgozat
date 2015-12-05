@@ -119,7 +119,6 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
     @Override
     public void onOuterDragExited(int position) {
         videoChannelAdapter.removeOuterDragItem(position);
-        videoChannelRV.get
     }
 
     @Override

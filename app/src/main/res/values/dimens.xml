@@ -18,5 +18,7 @@
     <dimen name="content_area_spacing_large">16dp</dimen>
     <dimen name="content_area_spacing_xlarge">32dp</dimen>
     <dimen name="workbench_item_size">75dp</dimen>
+    <dimen name="main_button_width">200dp</dimen>
+    <dimen name="main_button_margin">8dp</dimen>
 
 </resources>

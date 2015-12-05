@@ -11,6 +11,7 @@ import com.mikepenz.materialdrawer.util.DrawerImageLoader;
 import com.squareup.picasso.Picasso;
 
 import hu.bme.agocs.videoeditor.videoeditor.data.ImageManager;
+import hu.bme.agocs.videoeditor.videoeditor.data.VideoManager;
 import timber.log.Timber;
 
 /**
@@ -28,6 +29,8 @@ public class VideoEditor extends Application {
         Timber.plant(new Timber.DebugTree());
 
         initDrawerImageLoader();
+
+        VideoManager.getInstance().init();
     }
 
     public static Context getContext() {

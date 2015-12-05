@@ -11,12 +11,26 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".presentation.view.editor.EditorActivity"
-            android:screenOrientation="landscape">
+            android:name=".presentation.view.init.MainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".presentation.view.gallery.GalleryActivity"
+            android:screenOrientation="portrait">
+        </activity>
+
+        <activity
+            android:name=".presentation.view.about.AboutActivity">
+        </activity>
+
+        <activity
+            android:name=".presentation.view.editor.EditorActivity"
+            android:screenOrientation="landscape">
         </activity>
 
     </application>
