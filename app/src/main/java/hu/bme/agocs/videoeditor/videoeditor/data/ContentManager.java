@@ -12,11 +12,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Timer;
 
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.FFmpegInfo;
 import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.ProcessUpdate;
+import hu.bme.agocs.videoeditor.videoeditor.data.enums.MediaType;
+import hu.bme.agocs.videoeditor.videoeditor.data.enums.ProcessUpdateType;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.VideoEditor;
 import rx.Observable;
 import rx.SingleSubscriber;
 import rx.Subscription;
+import rx.functions.Func1;
 import timber.log.Timber;
 
 /**
@@ -81,13 +86,94 @@ public class ContentManager {
                     subscriber.onNext(false);
                 }
 
+                db.put(Constants.MEDIA_OBJECTS, currentMediaObjects.toArray(new MediaObject[currentMediaObjects.size()]));
+
                 db.close();
 
             } catch (SnappydbException e) {
-                Timber.e(e, "getMediaObjects");
+                Timber.e(e, "storeMediaObject");
                 subscriber.onError(e);
             }
             subscriber.onCompleted();
         });
+    }
+
+    public Observable<ArrayList<MediaObject>> getTimeLine() {
+        return Observable.create(subscriber -> {
+
+            try {
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+
+                ArrayList<MediaObject> result = new ArrayList<>();
+
+                if (db.exists(Constants.TIME_LINE)) {
+                    MediaObject[] mediaObjects = db.getObjectArray(Constants.TIME_LINE, MediaObject.class);
+                    result.addAll(Arrays.asList(mediaObjects));
+                }
+
+                subscriber.onNext(result);
+
+                db.close();
+
+            } catch (SnappydbException e) {
+                Timber.e(e, "getTimeLine");
+                subscriber.onError(e);
+            }
+            subscriber.onCompleted();
+        });
+    }
+
+    public Observable<Boolean> storeTimeLine(ArrayList<MediaObject> timeLine) {
+        return Observable.create(subscriber -> {
+
+            try {
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+
+                db.put(Constants.TIME_LINE, timeLine.toArray(new MediaObject[timeLine.size()]));
+
+                subscriber.onNext(true);
+
+                db.close();
+
+            } catch (SnappydbException e) {
+                Timber.e(e, "storeTimeLine");
+                subscriber.onError(e);
+            }
+            subscriber.onCompleted();
+        });
+    }
+
+    public Observable<Boolean> clearTimeLine() {
+        return Observable.create(subscriber -> {
+
+            try {
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+
+                if (db.exists(Constants.TIME_LINE)) {
+                    db.del(Constants.TIME_LINE);
+                    subscriber.onNext(true);
+                } else {
+                    subscriber.onNext(false);
+                }
+
+                db.close();
+
+            } catch (SnappydbException e) {
+                Timber.e(e, "clearTimeLine");
+                subscriber.onError(e);
+            }
+            subscriber.onCompleted();
+        });
+    }
+
+
+    public Observable<MediaObject> processNewVideoImport(String videoPath) {
+        MediaObject mediaObject = new MediaObject(MediaType.VIDEO, videoPath);
+        return VideoManager.getInstance()
+                .analyzeMedia(videoPath)
+                .flatMap(ffmpegInfo -> {
+                    mediaObject.setMediaInfo(ffmpegInfo);
+                    return storeMediaObject(mediaObject);
+                }).flatMap(isInsert -> Observable.just(mediaObject));
     }
 }

@@ -13,24 +13,59 @@
         app:cardBackgroundColor="@color/item_normal_bg"
         app:cardCornerRadius="5dp"
         app:cardUseCompatPadding="true"
-        app:contentPadding="8dp">
+        app:contentPadding="-1dp">
 
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <ImageView
+            <hu.bme.agocs.videoeditor.videoeditor.presentation.view.widget.RepeatingImageView
+                android:id="@+id/videoChannelThumbnailIV"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"/>
 
-            <TextView
-                android:id="@+id/videoChannelItemTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:text="Proba1234"/>
 
+            <android.support.v7.widget.CardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|left"
+                app:cardBackgroundColor="@color/text_card_bg"
+                app:contentPaddingLeft="4dp"
+                app:contentPaddingRight="4dp">
+
+                <TextView
+                    android:id="@+id/videoChannelItemTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"/>
+
+            </android.support.v7.widget.CardView>
+
+            <android.support.v7.widget.CardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|right"
+                app:cardBackgroundColor="@color/text_card_bg"
+                app:contentPaddingLeft="4dp"
+                app:contentPaddingRight="4dp">
+
+                <TextView
+                    android:id="@+id/videoChannelItemTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"/>
+
+            </android.support.v7.widget.CardView>
         </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/videoChannelHighlightLayer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/item_highlight"
+            android:visibility="gone"/>
 
     </android.support.v7.widget.CardView>
 

@@ -1,6 +1,9 @@
 package hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.support.annotation.FractionRes;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.LinearLayoutManager;
@@ -8,23 +11,35 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.DragEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
 
+import com.devpaul.filepickerlibrary.FilePickerBuilder;
+import com.devpaul.filepickerlibrary.enums.FileScopeType;
 import com.hannesdorfmann.mosby.mvp.MvpActivity;
 
+import java.io.File;
 import java.util.ArrayList;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import hu.bme.agocs.videoeditor.videoeditor.R;
 import hu.bme.agocs.videoeditor.videoeditor.data.Constants;
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.presenter.EditorPresenter;
+import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.video.VideoChannelItemViewHolder;
+import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.dialogs.ProgressDialogFragment;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.drawer.EditorDrawer;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.EditorItemTouchHelperCallback;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.OnDragActionListener;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.video.VideoAdapter;
+import ru.bartwell.exfilepicker.ExFilePicker;
+import ru.bartwell.exfilepicker.ExFilePickerActivity;
+import ru.bartwell.exfilepicker.ExFilePickerParcelObject;
 import timber.log.Timber;
 
 /**
@@ -34,6 +49,10 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
 
     private static final String WORKBENCH_FRAGMENT = "WorkbenchFragment";
 
+    private static final int VIDEO_REQUEST = 1001;
+    private static final int AUDIO_REQUEST = 1002;
+    private static final int PICTURE_REQUEST = 1003;
+
     @Bind(R.id.videoChannelRV)
     RecyclerView videoChannelRV;
     @Bind(R.id.editorWorkbenchContainer)
@@ -42,10 +61,15 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
     SeekBar editorVideoChannelZoomSB;
     @Bind(R.id.editorToolbar)
     Toolbar editorToolbar;
+    @Bind(R.id.mainContainer)
+    FrameLayout mainContainer;
 
     private EditorDrawer editorDrawer;
     private ItemTouchHelper mItemTouchHelper;
     private VideoAdapter videoChannelAdapter;
+
+    private WorkbenchFragment workbenchFragment;
+    private ProgressDialogFragment progressDialog;
 
     @NonNull
     @Override
@@ -68,19 +92,14 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
     }
 
     private void initWorkbenchFragment() {
+        workbenchFragment = WorkbenchFragment.newInstance();
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.add(R.id.editorWorkbenchContainer, WorkbenchFragment.newInstance(), WORKBENCH_FRAGMENT);
+        ft.add(R.id.editorWorkbenchContainer, workbenchFragment, WORKBENCH_FRAGMENT);
         ft.commit();
     }
 
     private void initLayout() {
-        ArrayList<Integer> videos = new ArrayList<>();
-
-        for (int i = 0; i < 5; i++) {
-            int test = (int) (Math.random() * 5 + 3);
-            Timber.d("Data: " + test);
-            videos.add(test);
-        }
+        ArrayList<MediaObject> videos = new ArrayList<>();
 
         videoChannelAdapter = new VideoAdapter(this);
         videoChannelAdapter.setData(videos);
@@ -88,6 +107,19 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
         videoChannelRV.setHasFixedSize(true);
         videoChannelRV.setAdapter(videoChannelAdapter);
         videoChannelRV.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        videoChannelRV.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch (event.getAction()) {
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        onOuterDragEntered(event, videoChannelAdapter.getItemCount());
+                        return true;
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        return true;
+                }
+                return false;
+            }
+        });
 
         ItemTouchHelper.Callback callback = new EditorItemTouchHelperCallback(videoChannelAdapter);
         mItemTouchHelper = new ItemTouchHelper(callback);
@@ -113,7 +145,7 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
 
     @Override
     public void onOuterDragEntered(DragEvent event, int position) {
-        videoChannelAdapter.addOuterDragItem(1, position);
+        videoChannelAdapter.addOuterDragItem((MediaObject) event.getLocalState(), position);
     }
 
     @Override
@@ -131,11 +163,125 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
 
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
-
     }
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
+    }
 
+    @Override
+    public void showVideoPickerDialog() {
+        Intent intent = new Intent(this, ExFilePickerActivity.class);
+        intent.putExtra(ExFilePicker.DISABLE_NEW_FOLDER_BUTTON, true);
+        intent.putExtra(ExFilePicker.ENABLE_QUIT_BUTTON, true);
+        intent.putExtra(ExFilePicker.SET_FILTER_LISTED, new String[]{"avi", "mp4", "3gp", "mov"});
+        startActivityForResult(intent, VIDEO_REQUEST);
+    }
+
+    @Override
+    public void showAudioPickerDialog() {
+        Intent intent = new Intent(this, ExFilePickerActivity.class);
+        intent.putExtra(ExFilePicker.DISABLE_NEW_FOLDER_BUTTON, true);
+        intent.putExtra(ExFilePicker.ENABLE_QUIT_BUTTON, true);
+        intent.putExtra(ExFilePicker.SET_FILTER_LISTED, new String[]{".mp3", ".wav"});
+        startActivityForResult(intent, AUDIO_REQUEST);
+    }
+
+    @Override
+    public void showPicturePickerDialog() {
+        Intent intent = new Intent(this, ExFilePickerActivity.class);
+        intent.putExtra(ExFilePicker.DISABLE_NEW_FOLDER_BUTTON, true);
+        intent.putExtra(ExFilePicker.ENABLE_QUIT_BUTTON, true);
+        intent.putExtra(ExFilePicker.SET_FILTER_LISTED, new String[]{"jpeg", "jpg", "png", "gif", "bmp", "wbmp"});
+        startActivityForResult(intent, PICTURE_REQUEST);
+    }
+
+    @Override
+    public void informWorkbenchFragment() {
+        if (workbenchFragment != null) {
+            workbenchFragment.loadData(false);
+        }
+    }
+
+    @Override
+    public void clearTimeLineAdapter() {
+        if (videoChannelAdapter != null) {
+            videoChannelAdapter.clearData();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.menu_editor, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.clearTimeLine:
+                getPresenter().clearTimeLine();
+                return true;
+            case R.id.renderTimeLine:
+                if (videoChannelAdapter != null && videoChannelAdapter.getData().size() > 1) {
+                    getPresenter().startConcatTask(videoChannelAdapter.getData());
+                }
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == ExFilePickerActivity.RESULT_OK) {
+            switch (requestCode) {
+                case VIDEO_REQUEST:
+                    handleVideoPickResult(data.getParcelableExtra(ExFilePickerParcelObject.class.getCanonicalName()));
+                    break;
+                case AUDIO_REQUEST:
+                    handleAudioPickResult(data.getParcelableExtra(ExFilePickerParcelObject.class.getCanonicalName()));
+                    break;
+                case PICTURE_REQUEST:
+                    handlePicturePickResult(data.getParcelableExtra(ExFilePickerParcelObject.class.getCanonicalName()));
+                    break;
+            }
+        }
+    }
+
+    private void handlePicturePickResult(ExFilePickerParcelObject result) {
+        if (result.count > 0) {
+            getPresenter().insertNewPictureIntoWorkbench(result.path.concat(result.names.get(0)));
+        }
+    }
+
+    private void handleAudioPickResult(ExFilePickerParcelObject result) {
+        if (result.count > 0) {
+            getPresenter().insertNewAudioIntoWorkbench(result.path.concat(result.names.get(0)));
+        }
+    }
+
+    private void handleVideoPickResult(ExFilePickerParcelObject result) {
+        if (result.count > 0) {
+            getPresenter().insertNewVideoIntoWorkbench(result.path.concat(result.names.get(0)));
+        }
+    }
+
+    @Override
+    public void showProgressDialog(boolean isShown, int processCount) {
+        if (isShown) {
+            if (progressDialog == null || !progressDialog.isShowing()) {
+                progressDialog = new ProgressDialogFragment(this);
+                progressDialog.setCancelable(false);
+                progressDialog.setTaskCount(processCount);
+                progressDialog.show();
+            }
+        } else {
+            if (progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+        }
     }
 }

@@ -7,9 +7,12 @@
     <color name="grey">#505050</color>
 
     <color name="item_normal_bg">#EEEEEE</color>
-    <color name="item_selected_bg">#00AAFF</color>
+
+    <color name="item_highlight">#6600AAFF</color>
 
     <color name="activity_bg_dark">#303030</color>
+
+    <color name="text_card_bg">#88000000</color>
 
     <color name="material_drawer_primary">#2196F3</color>
     <color name="material_drawer_primary_dark">#1976D2</color>

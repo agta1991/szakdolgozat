@@ -52,6 +52,7 @@ public class GalleryActivity extends MvpLceActivity<LinearLayout, ArrayList<Medi
         ButterKnife.bind(this);
 
         setSupportActionBar(galleryToolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         setTitle("Gallery of finished projects");
 
         adapter = new GalleryAdapter(this);

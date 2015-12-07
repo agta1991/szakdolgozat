@@ -54,7 +54,7 @@ public class ImageManager {
         @Override
         public Result load(Request request, int networkPolicy) throws IOException {
             Bitmap bitmap = ThumbnailUtils.createVideoThumbnail(
-                    request.uri.getHost(), MediaStore.Video.Thumbnails.MINI_KIND);
+                    request.uri.getPath(), MediaStore.Video.Thumbnails.MINI_KIND);
             return new Result(bitmap, Picasso.LoadedFrom.DISK);
         }
     }

@@ -1,18 +1,23 @@
 package hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.grid;
 
 import android.content.ClipData;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import java.util.ArrayList;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import hu.bme.agocs.videoeditor.videoeditor.R;
+import hu.bme.agocs.videoeditor.videoeditor.data.ImageManager;
 import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
 
 /**
@@ -40,7 +45,20 @@ public class WorkbenchAdapter extends RecyclerView.Adapter<WorkbenchAdapter.View
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-
+        MediaObject mediaObject = workbenchData.get(position);
+        switch (mediaObject.getType()) {
+            case AUDIO:
+                break;
+            case VIDEO:
+                ImageManager.getInstance().getPicasso()
+                        .load(Uri.parse(ImageManager.VIDEO + "://" + mediaObject.getFilePath()))
+                        .resizeDimen(R.dimen.workbench_item_size, R.dimen.workbench_item_size)
+                        .centerCrop()
+                        .into(holder.workbenchThumbnailIV);
+                break;
+            case PICTURE:
+                break;
+        }
     }
 
     @Override
@@ -57,11 +75,13 @@ public class WorkbenchAdapter extends RecyclerView.Adapter<WorkbenchAdapter.View
 
         @Bind(R.id.workbenchItemCard)
         CardView workbenchItemCard;
+        @Bind(R.id.workbenchThumbnailIV)
+        ImageView workbenchThumbnailIV;
 
         public ViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
-            itemView.setOnLongClickListener(this);
+            workbenchItemCard.setOnLongClickListener(this);
         }
 
         @Override

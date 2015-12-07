@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="180dp"
+    android:layout_height="180dp"
+    android:layout_gravity="center">
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <at.grabner.circleprogress.CircleProgressView
+            android:id="@+id/progressView"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            app:cpv_maxValue="100"
+            app:cpv_seekMode="false"
+            app:cpv_showTextInSpinningMode="false"
+            app:cpv_showUnit="true"
+            app:cpv_textColor="@color/white"
+            app:cpv_textMode="Percent"
+            app:cpv_textSize="40sp"
+            app:cpv_unit="%"
+            app:cpv_unitColor="@color/white"
+            app:cpv_unitPosition="bottom"
+            app:cpv_unitSize="30sp"/>
+
+        <TextView
+            android:id="@+id/progressMessageTV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="40dp"
+            android:text="Processing: 1/5"
+            android:textSize="10sp"/>
+
+    </FrameLayout>
+
+
+</FrameLayout>

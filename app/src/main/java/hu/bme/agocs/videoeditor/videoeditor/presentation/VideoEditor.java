@@ -4,11 +4,14 @@ import android.app.Application;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Environment;
 import android.widget.ImageView;
 
 import com.mikepenz.materialdrawer.util.AbstractDrawerImageLoader;
 import com.mikepenz.materialdrawer.util.DrawerImageLoader;
 import com.squareup.picasso.Picasso;
+
+import java.io.File;
 
 import hu.bme.agocs.videoeditor.videoeditor.data.ImageManager;
 import hu.bme.agocs.videoeditor.videoeditor.data.VideoManager;
@@ -21,6 +24,8 @@ public class VideoEditor extends Application {
 
     private static Context context;
 
+    private static String baseDirPath;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -29,12 +34,17 @@ public class VideoEditor extends Application {
         Timber.plant(new Timber.DebugTree());
 
         initDrawerImageLoader();
+        initAppStorageDirectory();
 
         VideoManager.getInstance().init();
     }
 
     public static Context getContext() {
         return context;
+    }
+
+    public static String getBaseDirPath() {
+        return baseDirPath;
     }
 
     private void initDrawerImageLoader() {
@@ -53,5 +63,20 @@ public class VideoEditor extends Application {
                         .cancelRequest(imageView);
             }
         });
+    }
+
+    private void initAppStorageDirectory() {
+        File baseDir = new File(Environment.getExternalStorageDirectory() + "/" + getPackageName());
+        boolean success = true;
+        if (!baseDir.exists()) {
+            success = baseDir.mkdir()
+                    && baseDir.setWritable(true)
+                    && baseDir.setReadable(true);
+        }
+        if (success) {
+            baseDirPath = baseDir.getAbsolutePath() + "/";
+        } else {
+            throw new RuntimeException("Can not create base directory. Permission denied.");
+        }
     }
 }

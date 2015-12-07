@@ -8,10 +8,17 @@ import hu.bme.agocs.videoeditor.videoeditor.data.enums.ProcessUpdateType;
 public class ProcessUpdate {
     private ProcessUpdateType type;
     private String output;
+    private Object data;
 
     public ProcessUpdate(ProcessUpdateType type, String output) {
         this.type = type;
         this.output = output;
+    }
+
+    public ProcessUpdate(ProcessUpdateType type, String output, Object data) {
+        this.type = type;
+        this.output = output;
+        this.data = data;
     }
 
     public ProcessUpdateType getType() {
@@ -20,5 +27,13 @@ public class ProcessUpdate {
 
     public String getOutput() {
         return output;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
     }
 }

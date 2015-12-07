@@ -6,7 +6,6 @@ import android.os.AsyncTask;
 import com.github.hiteshsondhi88.libffmpeg.cpuhelper.CpuArch;
 import com.github.hiteshsondhi88.libffmpeg.FileUtils;
 import com.github.hiteshsondhi88.libffmpeg.Log;
-import com.github.hiteshsondhi88.libffmpeg.ffmpeg.FFmpegLoadBinaryResponseHandler;
 
 import java.io.File;
 
@@ -24,7 +23,7 @@ public class FFprobeLoadLibraryAsyncTask extends AsyncTask<Void, Void, Boolean> 
 
     @Override
     protected Boolean doInBackground(Void... params) {
-        File ffprobeFile = new File(FileUtils.getFFmpeg(context));
+        File ffprobeFile = new File(FileUtils.getFFprobe(context));
         if (ffprobeFile.exists() && isDeviceFFprobeVersionOld() && !ffprobeFile.delete()) {
             return false;
         }
@@ -63,6 +62,6 @@ public class FFprobeLoadLibraryAsyncTask extends AsyncTask<Void, Void, Boolean> 
     }
 
     private boolean isDeviceFFprobeVersionOld() {
-        return CpuArch.fromString(FileUtils.SHA1(FileUtils.getFFmpeg(context))).equals(CpuArch.NONE);
+        return CpuArch.fromString(FileUtils.SHA1(FileUtils.getFFprobe(context))).equals(CpuArch.NONE);
     }
 }

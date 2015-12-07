@@ -23,6 +23,7 @@ import com.mikepenz.materialdrawer.util.DrawerUIUtils;
 import java.util.ArrayList;
 
 import hu.bme.agocs.videoeditor.videoeditor.R;
+import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.EditorActivity;
 
 /**
  * Created by Agócs Tamás on 2015. 11. 27..
@@ -31,7 +32,12 @@ public class EditorDrawer {
 
     private static final int IMPORT = 0;
 
-    private final Activity activity;
+    private static final int AUDIO_IMPORT = 1;
+    private static final int VIDEO_IMPORT = 2;
+    private static final int PICTURE_IMPORT = 3;
+
+
+    private final EditorActivity activity;
     private final Toolbar toolbar;
     private CrossfadeDrawerLayout crossfadeDrawerLayout;
     private BaseDrawerAdapter adapter;
@@ -48,7 +54,7 @@ public class EditorDrawer {
     private IDrawerItem importSoundBrowse;
 
 
-    public EditorDrawer(@NonNull Activity activity, @NonNull Toolbar toolbar) {
+    public EditorDrawer(@NonNull EditorActivity activity, @NonNull Toolbar toolbar) {
         this.activity = activity;
         this.toolbar = toolbar;
         crossfadeDrawerLayout = new CrossfadeDrawerLayout(activity);
@@ -62,15 +68,15 @@ public class EditorDrawer {
         //Import submenu
         importHeader = new PrimaryDrawerItem().withLevel(0).withIcon(R.drawable.ic_import_export_white_24dp).withName("Import");
 
-        importVideoHeader = new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_video_library_white_24dp).withName("Video");
+        importVideoHeader = new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_video_library_white_24dp).withName("Video").withIdentifier(VIDEO_IMPORT);
         importVideoRecord = new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_photo_camera_white_24dp).withName("Record new video");
         importVideoBrowse = new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select video file");
 
-        importPictureHeader = new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_photo_library_white_24dp).withName("Picture");
+        importPictureHeader = new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_photo_library_white_24dp).withName("Picture").withIdentifier(PICTURE_IMPORT);
         importPictureRecord = new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_photo_camera_white_24dp).withName("Take a picture");
         importPictureBrowse = new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select picture file");
 
-        importSoundHeader = new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_library_music_white_24dp).withName("Audio");
+        importSoundHeader = new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_library_music_white_24dp).withName("Audio").withIdentifier(AUDIO_IMPORT);
         importSoundRecord = new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_mic_white_24dp).withName("Record audio");
         importSoundBrowse = new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select audio file");
     }
@@ -89,17 +95,17 @@ public class EditorDrawer {
 
                         new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_video_library_white_24dp).withName("Video").withSelectable(false),
                         new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_photo_camera_white_24dp).withName("Record new video"),
-                        new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select video file"),
+                        new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select video file").withIdentifier(VIDEO_IMPORT),
                         new DividerDrawerItem(),
 
                         new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_photo_library_white_24dp).withName("Picture").withSelectable(false),
                         new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_photo_camera_white_24dp).withName("Take a picture"),
-                        new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select picture file"),
+                        new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select picture file").withIdentifier(PICTURE_IMPORT),
                         new DividerDrawerItem(),
 
                         new SecondaryDrawerItem().withLevel(1).withIcon(R.drawable.ic_library_music_white_24dp).withName("Audio").withSelectable(false),
                         new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_mic_white_24dp).withName("Record audio"),
-                        new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select audio file"),
+                        new SecondaryDrawerItem().withLevel(2).withIcon(R.drawable.ic_folder_open_white_24dp).withName("Select audio file").withIdentifier(AUDIO_IMPORT),
                         new DividerDrawerItem()
                 )
                 .build();
@@ -125,6 +131,26 @@ public class EditorDrawer {
             @Override
             public boolean isCrossfaded() {
                 return crossfadeDrawerLayout.isCrossfaded();
+            }
+        });
+
+        editorMenu.setOnDrawerItemClickListener(new Drawer.OnDrawerItemClickListener() {
+            @Override
+            public boolean onItemClick(View view, int position, IDrawerItem drawerItem) {
+                editorMenu.closeDrawer();
+                switch (drawerItem.getIdentifier()) {
+                    case VIDEO_IMPORT:
+                        activity.showVideoPickerDialog();
+                        return true;
+                    case AUDIO_IMPORT:
+                        activity.showAudioPickerDialog();
+                        return true;
+                    case PICTURE_IMPORT:
+                        activity.showPicturePickerDialog();
+                        return true;
+                    default:
+                }
+                return false;
             }
         });
     }

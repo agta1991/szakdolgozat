@@ -77,7 +77,7 @@ public class FFprobe implements FFprobeInterface {
             throw new CommandAlreadyRunningException("FFprobe command is already running, you are only allowed to run single command at a time");
         }
         if (cmd.length != 0) {
-            String[] ffmpegBinary = new String[]{FileUtils.getFFmpeg(context, environvenmentVars)};
+            String[] ffmpegBinary = new String[]{FileUtils.getFFprobe(context, environvenmentVars)};
             String[] command = concatenate(ffmpegBinary, cmd);
             ffprobeExecuteAsyncTask = new FFprobeExecuteAsyncTask(command, timeout, ffprobeExecuteResponseHandler);
             ffprobeExecuteAsyncTask.execute();
@@ -106,7 +106,7 @@ public class FFprobe implements FFprobeInterface {
     @Override
     public String getDeviceFFprobeVersion() throws CommandAlreadyRunningException {
         ShellCommand shellCommand = new ShellCommand();
-        CommandResult commandResult = shellCommand.runWaitFor(new String[]{FileUtils.getFFmpeg(context), "-version"});
+        CommandResult commandResult = shellCommand.runWaitFor(new String[]{FileUtils.getFFprobe(context), "-version"});
         if (commandResult.isSuccess()) {
             return commandResult.getOutput().split(" ")[2];
         }

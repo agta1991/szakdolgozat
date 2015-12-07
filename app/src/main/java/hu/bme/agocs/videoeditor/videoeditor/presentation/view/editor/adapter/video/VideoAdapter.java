@@ -1,15 +1,28 @@
 package hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.video;
 
+import android.app.Activity;
+import android.database.DatabaseUtils;
+import android.net.Uri;
+import android.os.Parcel;
+import android.os.SystemClock;
 import android.support.v7.widget.RecyclerView;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import hu.bme.agocs.videoeditor.videoeditor.R;
 import hu.bme.agocs.videoeditor.videoeditor.data.Constants;
+import hu.bme.agocs.videoeditor.videoeditor.data.ImageManager;
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.ItemTouchHelperAdapter;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.OnDragActionListener;
 
@@ -19,7 +32,7 @@ import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.OnD
 public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolder> implements ItemTouchHelperAdapter {
 
 
-    private ArrayList<Integer> data = new ArrayList<>();
+    private ArrayList<MediaObject> data = new ArrayList<>();
     private OnDragActionListener dragActionListener;
     private float scale;
 
@@ -29,7 +42,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
         scale = Constants.VIDEO_CHANNEL_SCALE;
     }
 
-    public VideoAdapter(ArrayList<Integer> data, OnDragActionListener dragActionListener) {
+    public VideoAdapter(ArrayList<MediaObject> data, OnDragActionListener dragActionListener) {
         super();
         this.data = data;
         this.dragActionListener = dragActionListener;
@@ -45,8 +58,42 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
 
     @Override
     public void onBindViewHolder(VideoChannelItemViewHolder holder, int position) {
+        MediaObject mediaObject = data.get(position);
+        switch (mediaObject.getType()) {
+            case AUDIO:
+                break;
+            case VIDEO:
+                ImageManager.getInstance().getPicasso()
+                        .load(Uri.parse(ImageManager.VIDEO + "://" + mediaObject.getFilePath()))
+                        .placeholder(android.R.drawable.progress_indeterminate_horizontal)
+                        .into(holder.videoChannelThumbnailIV);
+                break;
+            case PICTURE:
+                break;
+        }
+        String[] pathParts = mediaObject.getFilePath().split("/");
+        holder.videoChannelItemTitle.setText(pathParts[pathParts.length - 1]);
+
+        if (mediaObject.getMediaInfo() != null && mediaObject.getMediaInfo().getFormat() != null) {
+            String duration = mediaObject.getMediaInfo().getFormat().getDuration();
+            if (duration != null) {
+                double durationSec = Double.parseDouble(duration) * 1000f;
+                Date durationDate = new Date();
+                durationDate.setTime((long) durationSec);
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SS");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                holder.videoChannelItemTime.setText(sdf.format(durationDate));
+            } else {
+                holder.videoChannelItemTime.setText("N/A");
+            }
+        }
+
         ViewGroup.LayoutParams params = holder.videoChannelCard.getLayoutParams();
-        params.width = (int) (scale * data.get(position));
+        int newWidth = (int) (scale * 2);
+        if (mediaObject.getMediaInfo() != null && mediaObject.getMediaInfo().getFormat() != null) {
+            newWidth = (int) (scale * Math.sqrt(Double.parseDouble(mediaObject.getMediaInfo().getFormat().getDuration())));
+        }
+        params.width = Math.max(newWidth, params.height);
         holder.videoChannelCard.setLayoutParams(params);
         holder.videoChannelCard.requestLayout();
     }
@@ -69,8 +116,13 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
         notifyItemRemoved(position);
     }
 
-    public void setData(ArrayList<Integer> data) {
+    public void setData(ArrayList<MediaObject> data) {
         this.data = data;
+        notifyDataSetChanged();
+    }
+
+    public void clearData() {
+        this.data.clear();
         notifyDataSetChanged();
     }
 
@@ -79,9 +131,15 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
         notifyDataSetChanged();
     }
 
-    public void addOuterDragItem(Integer item, int position) {
-        data.add(position, item);
-        notifyItemInserted(position);
+    public ArrayList<MediaObject> getData() {
+        return data;
+    }
+
+    public void addOuterDragItem(MediaObject item, int position) {
+        if (!data.contains(item)) {
+            data.add(position, item);
+            notifyItemInserted(position);
+        }
     }
 
     public void removeOuterDragItem(int position) {

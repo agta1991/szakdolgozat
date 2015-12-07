@@ -63,5 +63,8 @@ dependencies {
     compile 'com.mikepenz:crossfadedrawerlayout:0.0.2'
     compile 'com.snappydb:snappydb-lib:0.5.2'
     compile 'com.esotericsoftware.kryo:kryo:2.24.0'
+    compile 'com.github.DeveloperPaul123:FilePickerLibrary:2.0.1'
+    compile 'com.github.jakob-grabner:Circle-Progress-View:1.2.8'
+    compile 'ru.bartwell:exfilepicker:1.8'
     compile project(':FFmpegAndroid')
 }

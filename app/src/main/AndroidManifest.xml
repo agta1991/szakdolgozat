@@ -1,7 +1,9 @@
 <manifest
     package="hu.bme.agocs.videoeditor.videoeditor"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
         android:name=".presentation.VideoEditor"
@@ -32,6 +34,11 @@
             android:name=".presentation.view.editor.EditorActivity"
             android:screenOrientation="landscape">
         </activity>
+
+        <activity
+            android:name="ru.bartwell.exfilepicker.ExFilePickerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/ExFilePickerThemeDark"/>
 
     </application>
 

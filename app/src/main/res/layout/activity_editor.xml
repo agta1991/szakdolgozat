@@ -1,82 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mainContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/activity_bg_dark"
-    android:orientation="vertical">
-
-    <android.support.v7.widget.Toolbar
-        android:id="@+id/editorToolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@android:color/transparent"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
-
+    android:background="@color/activity_bg_dark">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:background="@color/activity_bg_dark"
         android:orientation="vertical">
 
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/editorToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@android:color/transparent"
+            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
+
         <FrameLayout
-            android:id="@+id/editorWorkbenchContainer"
+            android:id="@+id/drawer_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="1">
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="@color/grey"/>
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="@dimen/content_area_spacing"
-                android:text="Timeline"
-                android:textColor="@color/white"
-                android:textSize="@dimen/text_body"/>
+                    <FrameLayout
+                        android:id="@+id/editorWorkbenchContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"/>
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.5dp"
+                        android:background="@color/grey"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="@dimen/content_area_spacing"
-                android:text="Zoom:"
-                android:textColor="@color/white"
-                android:textSize="@dimen/text_body"/>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-            <SeekBar
-                android:id="@+id/editorVideoChannelZoomSB"
-                android:layout_width="100dp"
-                android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="50"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:padding="@dimen/content_area_spacing"
+                            android:text="Timeline"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/text_body"/>
 
-        </LinearLayout>
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1"/>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="@color/grey"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:padding="@dimen/content_area_spacing"
+                            android:text="Zoom:"
+                            android:textColor="@color/white"
+                            android:textSize="@dimen/text_body"/>
 
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/videoChannelRV"
-            android:layout_width="match_parent"
-            android:layout_height="100dp"/>
+                        <SeekBar
+                            android:id="@+id/editorVideoChannelZoomSB"
+                            android:layout_width="100dp"
+                            android:layout_height="wrap_content"
+                            android:max="100"
+                            android:progress="50"/>
 
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.5dp"
+                        android:background="@color/grey"/>
+
+                    <android.support.v7.widget.RecyclerView
+                        android:id="@+id/videoChannelRV"
+                        android:layout_width="match_parent"
+                        android:layout_height="100dp"/>
+
+                </LinearLayout>
+            </FrameLayout>
+        </FrameLayout>
     </LinearLayout>
-
-</LinearLayout>
+</FrameLayout>

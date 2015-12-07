@@ -4,6 +4,8 @@ import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.DragEvent;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import butterknife.Bind;
@@ -25,6 +27,12 @@ public class VideoChannelItemViewHolder extends RecyclerView.ViewHolder
     CardView videoChannelCard;
     @Bind(R.id.videoChannelItemTitle)
     TextView videoChannelItemTitle;
+    @Bind(R.id.videoChannelItemTime)
+    TextView videoChannelItemTime;
+    @Bind(R.id.videoChannelThumbnailIV)
+    ImageView videoChannelThumbnailIV;
+    @Bind(R.id.videoChannelHighlightLayer)
+    FrameLayout videoChannelHighlightLayer;
 
     public VideoChannelItemViewHolder(View itemView, OnDragActionListener dragActionListener) {
         super(itemView);
@@ -36,14 +44,12 @@ public class VideoChannelItemViewHolder extends RecyclerView.ViewHolder
 
     @Override
     public void onItemSelected() {
-        videoChannelCard.setCardBackgroundColor(
-                VideoEditor.getContext().getResources().getColor(R.color.item_selected_bg));
+        videoChannelHighlightLayer.setVisibility(View.VISIBLE);
     }
 
     @Override
     public void onItemClear() {
-        videoChannelCard.setCardBackgroundColor(
-                VideoEditor.getContext().getResources().getColor(R.color.item_normal_bg));
+        videoChannelHighlightLayer.setVisibility(View.GONE);
     }
 
     @Override
