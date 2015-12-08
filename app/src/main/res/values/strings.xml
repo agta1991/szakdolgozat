@@ -3,4 +3,9 @@
     <string name="main_editor">Editor</string>
     <string name="main_gallery">Gallery</string>
     <string name="main_adout">About</string>
+    <string name="editor_do_you_audio">"Do you want to replace the audio channel of "</string>
+    <string name="editor_with_audio">" with audio from "</string>
+    <string name="editor_yes">Yes</string>
+    <string name="editor_no">No</string>
+    <string name="editor_audio_dialog_title">Edit audio</string>
 </resources>

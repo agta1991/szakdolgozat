@@ -41,11 +41,11 @@ public class ContentManager {
     private ContentManager() {
     }
 
-    public Observable<ArrayList<MediaObject>> getMediaObjects() {
+    public synchronized Observable<ArrayList<MediaObject>> getMediaObjects() {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
 
                 ArrayList<MediaObject> result = new ArrayList<>();
 
@@ -66,11 +66,11 @@ public class ContentManager {
         });
     }
 
-    public Observable<Boolean> storeMediaObject(MediaObject mediaObject) {
+    public synchronized Observable<Boolean> storeMediaObject(MediaObject mediaObject) {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
 
                 ArrayList<MediaObject> currentMediaObjects = new ArrayList<>();
 
@@ -81,12 +81,11 @@ public class ContentManager {
 
                 if (!currentMediaObjects.contains(mediaObject)) {
                     currentMediaObjects.add(mediaObject);
+                    db.put(Constants.MEDIA_OBJECTS, currentMediaObjects.toArray(new MediaObject[currentMediaObjects.size()]));
                     subscriber.onNext(true);
                 } else {
                     subscriber.onNext(false);
                 }
-
-                db.put(Constants.MEDIA_OBJECTS, currentMediaObjects.toArray(new MediaObject[currentMediaObjects.size()]));
 
                 db.close();
 
@@ -98,11 +97,11 @@ public class ContentManager {
         });
     }
 
-    public Observable<ArrayList<MediaObject>> getTimeLine() {
+    public synchronized Observable<ArrayList<MediaObject>> getTimeLine() {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
 
                 ArrayList<MediaObject> result = new ArrayList<>();
 
@@ -123,11 +122,11 @@ public class ContentManager {
         });
     }
 
-    public Observable<Boolean> storeTimeLine(ArrayList<MediaObject> timeLine) {
+    public synchronized Observable<Boolean> storeTimeLine(ArrayList<MediaObject> timeLine) {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
 
                 db.put(Constants.TIME_LINE, timeLine.toArray(new MediaObject[timeLine.size()]));
 
@@ -143,11 +142,11 @@ public class ContentManager {
         });
     }
 
-    public Observable<Boolean> clearTimeLine() {
+    public synchronized Observable<Boolean> clearTimeLine() {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME, new Kryo());
+                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
 
                 if (db.exists(Constants.TIME_LINE)) {
                     db.del(Constants.TIME_LINE);
@@ -167,13 +166,21 @@ public class ContentManager {
     }
 
 
-    public Observable<MediaObject> processNewVideoImport(String videoPath) {
-        MediaObject mediaObject = new MediaObject(MediaType.VIDEO, videoPath);
+    public Observable<Boolean> processNewVideoImport(String videoPath) {
         return VideoManager.getInstance()
-                .analyzeMedia(videoPath)
-                .flatMap(ffmpegInfo -> {
-                    mediaObject.setMediaInfo(ffmpegInfo);
-                    return storeMediaObject(mediaObject);
-                }).flatMap(isInsert -> Observable.just(mediaObject));
+                .analyzeMedia(MediaType.VIDEO, videoPath)
+                .flatMap(this::storeMediaObject);
+    }
+
+    public Observable<Boolean> processNewAudioImport(String audioPath) {
+        return VideoManager.getInstance()
+                .analyzeMedia(MediaType.AUDIO, audioPath)
+                .flatMap(this::storeMediaObject);
+    }
+
+    public Observable<Boolean> processNewPictureImport(String picPath) {
+        return VideoManager.getInstance()
+                .analyzeMedia(MediaType.PICTURE, picPath)
+                .flatMap(this::storeMediaObject);
     }
 }

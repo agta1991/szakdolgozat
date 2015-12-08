@@ -8,12 +8,17 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.concurrent.TimeUnit;
+
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import hu.bme.agocs.videoeditor.videoeditor.R;
+import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
+import hu.bme.agocs.videoeditor.videoeditor.data.enums.MediaType;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.VideoEditor;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.ItemTouchHelperViewHolder;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.OnDragActionListener;
+import timber.log.Timber;
 
 /**
  * Created by Agócs Tamás on 2015. 11. 29..
@@ -33,6 +38,8 @@ public class VideoChannelItemViewHolder extends RecyclerView.ViewHolder
     ImageView videoChannelThumbnailIV;
     @Bind(R.id.videoChannelHighlightLayer)
     FrameLayout videoChannelHighlightLayer;
+    @Bind(R.id.videoChannelInterceptHighlightLayer)
+    FrameLayout videoChannelInterceptHighlightLayer;
 
     public VideoChannelItemViewHolder(View itemView, OnDragActionListener dragActionListener) {
         super(itemView);
@@ -64,11 +71,24 @@ public class VideoChannelItemViewHolder extends RecyclerView.ViewHolder
 
     @Override
     public boolean onDrag(View v, DragEvent event) {
+
         switch (event.getAction()) {
+            case DragEvent.ACTION_DRAG_STARTED:
+                Timber.d("Drag event started.");
+                return true;
             case DragEvent.ACTION_DRAG_ENTERED:
+                Timber.d("Drag event entered.");
                 dragActionListener.onOuterDragEntered(event, getAdapterPosition());
                 return true;
-            case DragEvent.ACTION_DRAG_STARTED:
+            case DragEvent.ACTION_DRAG_EXITED:
+                Timber.d("Drag event exited.");
+                return true;
+            case DragEvent.ACTION_DROP:
+                Timber.d("Drag event drop.");
+                dragActionListener.onOuterDragDropped(event, getAdapterPosition());
+                return true;
+            case DragEvent.ACTION_DRAG_ENDED:
+                Timber.d("Drag event ended.");
                 return true;
             default:
                 return false;

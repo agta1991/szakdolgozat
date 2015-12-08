@@ -48,6 +48,8 @@ public class WorkbenchAdapter extends RecyclerView.Adapter<WorkbenchAdapter.View
         MediaObject mediaObject = workbenchData.get(position);
         switch (mediaObject.getType()) {
             case AUDIO:
+                holder.workbenchThumbnailIV.setImageResource(R.drawable.ic_music_note);
+                holder.workbenchItemTypeIconContainer.setVisibility(View.GONE);
                 break;
             case VIDEO:
                 ImageManager.getInstance().getPicasso()
@@ -55,8 +57,17 @@ public class WorkbenchAdapter extends RecyclerView.Adapter<WorkbenchAdapter.View
                         .resizeDimen(R.dimen.workbench_item_size, R.dimen.workbench_item_size)
                         .centerCrop()
                         .into(holder.workbenchThumbnailIV);
+                holder.workbenchItemTypeIcon.setImageResource(R.drawable.ic_movie);
+                holder.workbenchItemTypeIconContainer.setVisibility(View.VISIBLE);
                 break;
             case PICTURE:
+                ImageManager.getInstance().getPicasso()
+                        .load(mediaObject.getFilePath())
+                        .resizeDimen(R.dimen.workbench_item_size, R.dimen.workbench_item_size)
+                        .centerCrop()
+                        .into(holder.workbenchThumbnailIV);
+                holder.workbenchItemTypeIcon.setImageResource(R.drawable.ic_image_filter_hdr);
+                holder.workbenchItemTypeIconContainer.setVisibility(View.VISIBLE);
                 break;
         }
     }
@@ -77,6 +88,10 @@ public class WorkbenchAdapter extends RecyclerView.Adapter<WorkbenchAdapter.View
         CardView workbenchItemCard;
         @Bind(R.id.workbenchThumbnailIV)
         ImageView workbenchThumbnailIV;
+        @Bind(R.id.workbenchItemTypeIcon)
+        ImageView workbenchItemTypeIcon;
+        @Bind(R.id.workbenchItemTypeIconContainer)
+        CardView workbenchItemTypeIconContainer;
 
         public ViewHolder(View itemView) {
             super(itemView);

@@ -5,6 +5,7 @@ import android.text.TextUtils;
 
 import java.lang.reflect.Array;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.github.hiteshsondhi88.libffmpeg.CommandResult;
 import com.github.hiteshsondhi88.libffmpeg.cpuhelper.CpuArchHelper;
@@ -28,6 +29,13 @@ public class FFmpeg implements FFmpegInterface {
     private long timeout = Long.MAX_VALUE;
 
     private static FFmpeg instance = null;
+
+    public static String getFFmpegTimeFormat(long miliSeconds) {
+        int hrs = (int) TimeUnit.MILLISECONDS.toHours(miliSeconds) % 24;
+        int min = (int) TimeUnit.MILLISECONDS.toMinutes(miliSeconds) % 60;
+        int sec = (int) TimeUnit.MILLISECONDS.toSeconds(miliSeconds) % 60;
+        return String.format("%02d:%02d:%02d.%03d", hrs, min, sec, miliSeconds % 1000);
+    }
 
     private FFmpeg(Context context) {
         this.context = context.getApplicationContext();

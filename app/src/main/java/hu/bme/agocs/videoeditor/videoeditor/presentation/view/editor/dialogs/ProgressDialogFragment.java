@@ -3,8 +3,12 @@ package hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.dialogs;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.DialogFragment;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.TextView;
 
 import at.grabner.circleprogress.CircleProgressView;
@@ -18,7 +22,7 @@ import timber.log.Timber;
 /**
  * Created by Agócs Tamás on 2015. 12. 06..
  */
-public class ProgressDialogFragment extends ProgressDialog {
+public class ProgressDialogFragment extends DialogFragment {
 
 
     @Bind(R.id.progressView)
@@ -29,33 +33,42 @@ public class ProgressDialogFragment extends ProgressDialog {
     private int actualTask = 1;
     private int taskCount = 0;
 
-    public ProgressDialogFragment(Context context) {
-        super(context);
-    }
 
-    public ProgressDialogFragment(Context context, int theme) {
-        super(context, theme);
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        super.onCreateView(inflater, container, savedInstanceState);
+
+        View view = inflater.inflate(R.layout.dialog_progress, container, false);
+        ButterKnife.bind(this, view);
+
+
+        progressView.setMaxValue(100);
+        progressView.spin();
+
+        if (getDialog() != null) {
+            getDialog().requestWindowFeature(Window.FEATURE_NO_TITLE);
+            getDialog().setCancelable(false);
+        }
+
+        return view;
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        View view = getLayoutInflater().inflate(R.layout.dialog_progress, null);
-        setContentView(view, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        ButterKnife.bind(this, view);
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         EventBus.getDefault().register(this);
-        progressView.setMaxValue(100);
-        progressView.spin();
     }
+
 
     public void setTaskCount(int taskCount) {
         this.taskCount = taskCount;
     }
 
     @Override
-    protected void onStop() {
+    public void onDestroyView() {
         EventBus.getDefault().unregister(this);
-        super.onStop();
+        super.onDestroyView();
     }
 
     public void onEventMainThread(ProgressEvent event) {

@@ -1,5 +1,6 @@
 package hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -30,6 +31,7 @@ import butterknife.ButterKnife;
 import hu.bme.agocs.videoeditor.videoeditor.R;
 import hu.bme.agocs.videoeditor.videoeditor.data.Constants;
 import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
+import hu.bme.agocs.videoeditor.videoeditor.data.enums.MediaType;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.presenter.EditorPresenter;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.adapter.video.VideoChannelItemViewHolder;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.dialogs.ProgressDialogFragment;
@@ -110,11 +112,18 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
         videoChannelRV.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
+                MediaObject draggedMedia = (MediaObject) event.getLocalState();
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        onOuterDragEntered(event, videoChannelAdapter.getItemCount());
+                        Timber.d("Drag event entered.");
+                        if (!MediaType.AUDIO.equals(draggedMedia.getType())) {
+                            onOuterDragEntered(event, videoChannelAdapter.getItemCount());
+                        }
                         return true;
                     case DragEvent.ACTION_DRAG_STARTED:
+                        return true;
+                    case DragEvent.ACTION_DRAG_EXITED:
+                        videoChannelAdapter.removeHighlight();
                         return true;
                 }
                 return false;
@@ -145,12 +154,26 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
 
     @Override
     public void onOuterDragEntered(DragEvent event, int position) {
-        videoChannelAdapter.addOuterDragItem((MediaObject) event.getLocalState(), position);
+        MediaObject draggedMedia = (MediaObject) event.getLocalState();
+        if (!MediaType.AUDIO.equals(draggedMedia.getType())) {
+            videoChannelAdapter.addOuterDragItem((MediaObject) event.getLocalState(), position);
+        } else {
+            videoChannelAdapter.highlightItem(position);
+        }
+    }
+
+    @Override
+    public void onOuterDragDropped(DragEvent event, int position) {
+        MediaObject draggedMedia = (MediaObject) event.getLocalState();
+        if (MediaType.AUDIO.equals(draggedMedia.getType())) {
+            showAudioChannelSwapDialog(videoChannelAdapter.getItem(position), draggedMedia);
+        }
     }
 
     @Override
     public void onOuterDragExited(int position) {
         videoChannelAdapter.removeOuterDragItem(position);
+        videoChannelAdapter.removeHighlight();
     }
 
     @Override
@@ -183,7 +206,7 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
         Intent intent = new Intent(this, ExFilePickerActivity.class);
         intent.putExtra(ExFilePicker.DISABLE_NEW_FOLDER_BUTTON, true);
         intent.putExtra(ExFilePicker.ENABLE_QUIT_BUTTON, true);
-        intent.putExtra(ExFilePicker.SET_FILTER_LISTED, new String[]{".mp3", ".wav"});
+        intent.putExtra(ExFilePicker.SET_FILTER_LISTED, new String[]{"mp3", "wav"});
         startActivityForResult(intent, AUDIO_REQUEST);
     }
 
@@ -272,16 +295,35 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
     @Override
     public void showProgressDialog(boolean isShown, int processCount) {
         if (isShown) {
-            if (progressDialog == null || !progressDialog.isShowing()) {
-                progressDialog = new ProgressDialogFragment(this);
+            if (progressDialog == null || !progressDialog.isVisible()) {
+                progressDialog = new ProgressDialogFragment();
                 progressDialog.setCancelable(false);
                 progressDialog.setTaskCount(processCount);
-                progressDialog.show();
+                progressDialog.show(getSupportFragmentManager(), "ProgressDialog");
             }
         } else {
-            if (progressDialog != null && progressDialog.isShowing()) {
+            if (progressDialog != null && progressDialog.isVisible()) {
                 progressDialog.dismiss();
             }
         }
+    }
+
+    public void showAudioChannelSwapDialog(MediaObject timelineMedia, MediaObject audio) {
+        String timelineMediaName = new File(timelineMedia.getFilePath()).getName();
+        String audioName = new File(audio.getFilePath()).getName();
+        AlertDialog audioDialog = new AlertDialog.Builder(this)
+                .setMessage(getString(R.string.editor_do_you_audio) + timelineMediaName + getString(R.string.editor_with_audio) + audioName + "?")
+                .setPositiveButton(R.string.editor_yes, (dialog, which) -> {
+                    getPresenter().replaceAudioChannelOnMedia(timelineMedia, audio);
+                    dialog.dismiss();
+                })
+                .setNegativeButton(R.string.editor_no, (dialog, which) -> {
+                    videoChannelAdapter.removeHighlight();
+                    dialog.dismiss();
+                })
+                .setCancelable(false)
+                .setTitle(R.string.editor_audio_dialog_title)
+                .create();
+        audioDialog.show();
     }
 }

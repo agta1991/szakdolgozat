@@ -1,6 +1,8 @@
 package hu.bme.agocs.videoeditor.videoeditor.data;
 
-import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
+import android.media.MediaActionSound;
+import android.widget.Filterable;
+
 import com.github.hiteshsondhi88.libffmpeg.exceptions.CommandAlreadyRunningException;
 import com.github.hiteshsondhi88.libffmpeg.ffmpeg.FFmpeg;
 import com.github.hiteshsondhi88.libffmpeg.ffmpeg.FFmpegExecutor;
@@ -11,24 +13,20 @@ import com.github.hiteshsondhi88.libffmpeg.ffprobe.FFprobeExecutor;
 import com.github.hiteshsondhi88.libffmpeg.ffprobe.FFprobeLoadBinaryResponseHandler;
 import com.google.gson.Gson;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import de.greenrobot.event.EventBus;
 import hu.bme.agocs.videoeditor.videoeditor.data.entity.FFmpegInfo;
-import hu.bme.agocs.videoeditor.videoeditor.data.entity.FFmpegTask;
 import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
-import hu.bme.agocs.videoeditor.videoeditor.data.entity.ProcessUpdate;
 import hu.bme.agocs.videoeditor.videoeditor.data.enums.MediaType;
-import hu.bme.agocs.videoeditor.videoeditor.data.enums.ProcessUpdateType;
 import hu.bme.agocs.videoeditor.videoeditor.data.event.ProgressEvent;
+import hu.bme.agocs.videoeditor.videoeditor.data.utils.RetryWhenExceptionWithDelay;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.VideoEditor;
 import rx.Observable;
 import rx.Subscriber;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.functions.Func2;
 import timber.log.Timber;
 
 /**
@@ -111,56 +109,65 @@ public class VideoManager {
         }
     }
 
-    public Observable<ProcessUpdate> singleTask(FFmpegTask task) {
-        return Observable.create(subscriber -> {
-            Timber.i("Single task started with command: \n" + task.getParameters());
-            try {
-                ffmpeg.execute(task.getParameters(), new ExecuteBinaryResponseHandler() {
-                    @Override
-                    public void onSuccess(String message) {
-                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FAILURE, message));
-                        Timber.i("onSuccess: " + message);
-                    }
-
-                    @Override
-                    public void onProgress(String message) {
-                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FAILURE, message));
-                        Timber.i("onProgress: " + message);
-                    }
-
-                    @Override
-                    public void onFailure(String message) {
-                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FAILURE, message));
-                        Timber.e("onFailure: " + message);
-                    }
-
-                    @Override
-                    public void onStart() {
-                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.START, null));
-                        Timber.i("onStart");
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.FINISH, null));
-                        Timber.i("onFinish");
-                        subscriber.onCompleted();
-                    }
+    public Observable<MediaObject> analyzeMedia(MediaType type, String path) {
+        return analyzeMediaJson(path)
+                .retryWhen(new RetryWhenExceptionWithDelay(3, 5, TimeUnit.SECONDS, CommandAlreadyRunningException.class))
+                .flatMap(outputJson -> {
+                    final Gson gson = new Gson();
+                    outputJson = outputJson.substring(outputJson.indexOf("{"));
+                    FFmpegInfo info = gson.fromJson(outputJson, FFmpegInfo.class);
+                    MediaObject mediaObject = new MediaObject(type, path);
+                    mediaObject.setMediaInfo(info);
+                    return Observable.just(mediaObject);
                 });
-            } catch (CommandAlreadyRunningException e) {
-                subscriber.onError(new Exception("FFmpeg command already running."));
-                Timber.e(e, "FFmpeg command already running.");
-                subscriber.onCompleted();
-            }
-
-        });
     }
 
-    public Observable<FFmpegInfo> analyzeMedia(String path) {
+    public Observable<MediaObject> replaceAudioOnMedia(MediaObject sourceMedia, MediaObject audio) {
+        switch (sourceMedia.getType()) {
+            case VIDEO:
+                long maxLength = Math.min((long) (Double.parseDouble(sourceMedia.getMediaInfo().getFormat().getDuration()) * 1000),
+                        (long) (Double.parseDouble(audio.getMediaInfo().getFormat().getDuration()) * 1000));
+                return VideoManager.getInstance()
+                        .replaceAudioOnVideo(sourceMedia.getFilePath(), audio.getFilePath(), maxLength)
+                        .flatMap(outputFile -> analyzeMedia(MediaType.VIDEO, outputFile));
+            case PICTURE:
+                return VideoManager.getInstance()
+                        .replaceAudioOnPicture(sourceMedia.getFilePath(), audio.getFilePath(),
+                                (long) (Double.parseDouble(audio.getMediaInfo().getFormat().getDuration()) * 1000))
+                        .flatMap(outputFile -> analyzeMedia(MediaType.VIDEO, outputFile));
+            default:
+                return Observable.error(new Throwable("The source media can't be audio."));
+        }
+    }
+
+    public Observable<MediaObject> concatMediaObjects(ArrayList<MediaObject> mediaObjects) {
+        ffmpeg.killRunningProcesses();
+        ffprobe.killRunningProcesses();
+        return Observable.from(mediaObjects)
+                .flatMap(mediaObject -> convertToIntermediateFormat(mediaObject.getFilePath()))
+                .flatMap(tempIntermediatePath -> analyzeMedia(MediaType.VIDEO, tempIntermediatePath))
+                .buffer(mediaObjects.size())
+                .flatMap(this::concatAndDelete);
+    }
+
+    public Observable<MediaObject> concatAndDelete(List<MediaObject> temporaryMediaObjects) {
+        return concatIntermediates(temporaryMediaObjects)
+                .flatMap(outputPath -> analyzeMedia(MediaType.VIDEO, outputPath))
+                .doOnCompleted(() -> {
+                    for (MediaObject tempIntermediate : temporaryMediaObjects) {
+                        File tempFile = new File(tempIntermediate.getFilePath());
+                        if (tempFile.exists()) {
+                            tempFile.delete();
+                        }
+                    }
+                });
+    }
+
+    public Observable<String> analyzeMediaJson(String path) {
         return Observable.create(
-                new Observable.OnSubscribe<ProcessUpdate>() {
+                new Observable.OnSubscribe<String>() {
                     @Override
-                    public void call(Subscriber<? super ProcessUpdate> subscriber) {
+                    public void call(Subscriber<? super String> subscriber) {
 
                         Timber.i("Single task started with input: " + path);
                         FFprobeExecutor executor = new FFprobeExecutor.Builder(ffprobe)
@@ -187,7 +194,7 @@ public class VideoManager {
 
                                     @Override
                                     public void onSuccess(String message) {
-                                        subscriber.onNext(new ProcessUpdate(ProcessUpdateType.SUCCESS, message));
+                                        subscriber.onNext(message);
                                         subscriber.onCompleted();
                                         Timber.i("onSuccess: " + message);
                                     }
@@ -201,22 +208,64 @@ public class VideoManager {
                             subscriber.onCompleted();
                         }
                     }
-                })
-                .delay(10, TimeUnit.SECONDS)
-                .retry(new Func2<Integer, Throwable, Boolean>() {
-                    @Override
-                    public Boolean call(Integer integer, Throwable throwable) {
-                        return throwable instanceof CommandAlreadyRunningException && integer < 3;
-                    }
-                })
-                .filter(processUpdate -> ProcessUpdateType.SUCCESS.equals(processUpdate.getType()))
-                .flatMap(processUpdate -> {
-                    final Gson gson = new Gson();
-                    String jsonStr = processUpdate.getOutput();
-                    jsonStr = jsonStr.substring(jsonStr.indexOf("{"));
-                    FFmpegInfo info = gson.fromJson(jsonStr, FFmpegInfo.class);
-                    return Observable.just(info);
                 });
+    }
+
+    public Observable<String> concatIntermediates(List<MediaObject> mediaObjects) {
+        return Observable.create(new Observable.OnSubscribe<String>() {
+            @Override
+            public void call(Subscriber<? super String> subscriber) {
+                String outputPath = VideoEditor.getBaseDirPath() + String.valueOf(System.nanoTime()) + ".mp4";
+                FFmpegExecutor.Builder executorBuilder = new FFmpegExecutor.Builder(ffmpeg)
+                        .concat()
+                        .outputVideoCodec("copy")
+                        .outputVideoCodec("copy")
+                        .audioBitsreamFilter("aac_adtstoasc")
+                        .strict()
+                        .additionalParam("-2")
+                        .enableOutputOverride(true)
+                        .output(outputPath);
+                for (MediaObject tempObject : mediaObjects) {
+                    executorBuilder.input(tempObject.getFilePath());
+                }
+
+                executorBuilder.setListener(new FFmpegExecutor.FFmpegExecutorListener() {
+                    @Override
+                    public void onFailure(String message) {
+                        Timber.e("concatAndDelete - onFailure: " + message);
+                        subscriber.onError(new Throwable(message));
+                    }
+
+                    @Override
+                    public void onInfo(String message) {
+                        Timber.i("concatAndDelete - onInfo: " + message);
+                    }
+
+                    @Override
+                    public void onProgress(String message, float progress, long remaining) {
+                        Timber.i("concatAndDelete - onProgress: " + message);
+                        EventBus.getDefault().post(new ProgressEvent(false, progress, remaining, message));
+                    }
+
+                    @Override
+                    public void onSuccess(String message) {
+                        Timber.i("concatAndDelete - onSuccess: " + message);
+                        EventBus.getDefault().post(new ProgressEvent(true, 0, 0, message));
+                        subscriber.onNext(outputPath);
+                        subscriber.onCompleted();
+                    }
+                });
+
+                FFmpegExecutor executor = executorBuilder.build();
+
+                try {
+                    executor.execute();
+                } catch (CommandAlreadyRunningException e) {
+                    Timber.e(e, "concatAndDelete");
+                    subscriber.onError(e);
+                }
+            }
+        });
     }
 
     public Observable<String> convertToIntermediateFormat(String videoPath) {
@@ -271,84 +320,130 @@ public class VideoManager {
         });
     }
 
-    public Observable<MediaObject> concatMediaObjects(ArrayList<MediaObject> mediaObjects) {
-        ffmpeg.killRunningProcesses();
-        ffprobe.killRunningProcesses();
-        return Observable.from(mediaObjects)
-                .flatMap(mediaObject ->
-                                convertToIntermediateFormat(mediaObject.getFilePath())
-                                        .flatMap(tempPath -> analyzeMedia(tempPath)
-                                                        .flatMap(ffmpegInfo -> {
-                                                            MediaObject tempObject = new MediaObject(MediaType.VIDEO, tempPath);
-                                                            tempObject.setMediaInfo(ffmpegInfo);
-                                                            return Observable.just(tempObject);
-                                                        })
-                                        )
-                )
-                .buffer(mediaObjects.size())
-                .flatMap(this::concatAndDelete);
+
+    public Observable<String> replaceAudioOnVideo(String sourcePath, String audioPath, long maxLength) {
+        return Observable.create(subscriber -> {
+            String outputPath = VideoEditor.getBaseDirPath() + String.valueOf(System.nanoTime()) + ".mp4";
+
+            FFmpegExecutor.Builder executorBuilder = new FFmpegExecutor.Builder(ffmpeg)
+                    .enableOutputOverride(true)
+                    .input(sourcePath)
+                    .input(audioPath)
+                    .outputAudioCodec("aac")
+                    .outputVideoCodec("libx264")
+                    .strict()
+                    .additionalParam("-2")
+                    .additionalParam("-pix_fmt", "yuv420p")
+                    .additionalParam("-map", "0:v:0")
+                    .map(1, 0)
+                    .buildIndex()
+                    .additionalParam("-r")
+                    .additionalParam("15")
+                    .additionalParam("-g")
+                    .additionalParam("1")
+                    .additionalParam("-t", FFmpeg.getFFmpegTimeFormat(maxLength))
+                    .enableShortest(true)
+                    .output(outputPath);
+
+            executorBuilder.setListener(new FFmpegExecutor.FFmpegExecutorListener() {
+                @Override
+                public void onFailure(String message) {
+                    Timber.e("replaceAudioOnVideo - onFailure: " + message);
+                    subscriber.onError(new Throwable(message));
+                }
+
+                @Override
+                public void onInfo(String message) {
+                    Timber.i("replaceAudioOnVideo - onInfo: " + message);
+                }
+
+                @Override
+                public void onProgress(String message, float progress, long remaining) {
+                    Timber.i("replaceAudioOnVideo - onProgress: " + message);
+                    EventBus.getDefault().post(new ProgressEvent(false, progress, remaining, message));
+                }
+
+                @Override
+                public void onSuccess(String message) {
+                    Timber.i("replaceAudioOnVideo - onSuccess: " + message);
+                    EventBus.getDefault().post(new ProgressEvent(true, 0, 0, message));
+                    subscriber.onNext(outputPath);
+                    subscriber.onCompleted();
+                }
+            });
+
+            FFmpegExecutor executor = executorBuilder.build();
+
+            try {
+                executor.execute();
+            } catch (CommandAlreadyRunningException e) {
+                Timber.e(e, "replaceAudioOnVideo");
+                subscriber.onError(e);
+            }
+        });
     }
 
-    public Observable<MediaObject> concatAndDelete(List<MediaObject> temporaryMediaObjects) {
-        return Observable.create(new Observable.OnSubscribe<String>() {
-            @Override
-            public void call(Subscriber<? super String> subscriber) {
-                String outputPath = VideoEditor.getBaseDirPath() + String.valueOf(System.nanoTime()) + ".mp4";
-                FFmpegExecutor.Builder executorBuilder = new FFmpegExecutor.Builder(ffmpeg)
-                        .concat()
-                        .outputVideoCodec("copy")
-                        .outputVideoCodec("copy")
-                        .audioBitsreamFilter("aac_adtstoasc")
-                        .strict()
-                        .additionalParam("-2")
-                        .enableOutputOverride(true)
-                        .output(outputPath);
-                for (MediaObject tempObject : temporaryMediaObjects) {
-                    executorBuilder.input(tempObject.getFilePath());
+    private Observable<String> replaceAudioOnPicture(String imagePath, String audioFilePath, long maxLength) {
+        return Observable.create(subscriber -> {
+            String outputPath = VideoEditor.getBaseDirPath() + String.valueOf(System.nanoTime()) + ".mp4";
+
+            FFmpegExecutor.Builder executorBuilder = new FFmpegExecutor.Builder(ffmpeg)
+                    .enableOutputOverride(true)
+                    .additionalParam("-f", "image2")
+                    .loopInput(true)
+                    .input(imagePath)
+                    .input(audioFilePath)
+                    .enableShortest(true)
+                    .outputAudioCodec("aac")
+                    .outputVideoCodec("libx264")
+                    .additionalParam("-tune")
+                    .additionalParam("stillimage")
+                    .strict()
+                    .additionalParam("-2")
+                    .additionalParam("-pix_fmt", "yuv420p")
+                    .buildIndex()
+                    .additionalParam("-r")
+                    .additionalParam("15")
+                    .additionalParam("-g")
+                    .additionalParam("1")
+                    .additionalParam("-t", FFmpeg.getFFmpegTimeFormat(maxLength))
+                    .output(outputPath);
+
+            executorBuilder.setListener(new FFmpegExecutor.FFmpegExecutorListener() {
+                @Override
+                public void onFailure(String message) {
+                    Timber.e("replaceAudioOnPicture - onFailure: " + message);
+                    subscriber.onError(new Throwable(message));
                 }
 
-                executorBuilder.setListener(new FFmpegExecutor.FFmpegExecutorListener() {
-                    @Override
-                    public void onFailure(String message) {
-                        Timber.e("concatAndDelete - onFailure: " + message);
-                        subscriber.onError(new Throwable(message));
-                    }
-
-                    @Override
-                    public void onInfo(String message) {
-                        Timber.i("concatAndDelete - onInfo: " + message);
-                    }
-
-                    @Override
-                    public void onProgress(String message, float progress, long remaining) {
-                        Timber.i("concatAndDelete - onProgress: " + message);
-                        EventBus.getDefault().post(new ProgressEvent(false, progress, remaining, message));
-                    }
-
-                    @Override
-                    public void onSuccess(String message) {
-                        Timber.i("concatAndDelete - onSuccess: " + message);
-                        EventBus.getDefault().post(new ProgressEvent(true, 0, 0, message));
-                        subscriber.onNext(outputPath);
-                        subscriber.onCompleted();
-                    }
-                });
-
-                FFmpegExecutor executor = executorBuilder.build();
-
-                try {
-                    executor.execute();
-                } catch (CommandAlreadyRunningException e) {
-                    Timber.e(e, "concatAndDelete");
-                    subscriber.onError(e);
+                @Override
+                public void onInfo(String message) {
+                    Timber.i("replaceAudioOnPicture - onInfo: " + message);
                 }
-            }
-        }).flatMap(outputPath -> {
-            MediaObject mediaObject = new MediaObject(MediaType.VIDEO, outputPath);
-            return analyzeMedia(outputPath).flatMap(ffmpegInfo -> {
-                mediaObject.setMediaInfo(ffmpegInfo);
-                return Observable.just(mediaObject);
+
+                @Override
+                public void onProgress(String message, float progress, long remaining) {
+                    Timber.i("replaceAudioOnPicture - onProgress: " + message);
+                    EventBus.getDefault().post(new ProgressEvent(false, progress, remaining, message));
+                }
+
+                @Override
+                public void onSuccess(String message) {
+                    Timber.i("replaceAudioOnPicture - onSuccess: " + message);
+                    EventBus.getDefault().post(new ProgressEvent(true, 0, 0, message));
+                    subscriber.onNext(outputPath);
+                    subscriber.onCompleted();
+                }
             });
+
+            FFmpegExecutor executor = executorBuilder.build();
+
+            try {
+                executor.execute();
+            } catch (CommandAlreadyRunningException e) {
+                Timber.e(e, "replaceAudioOnPicture");
+                subscriber.onError(e);
+            }
         });
     }
 }

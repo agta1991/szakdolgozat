@@ -11,5 +11,7 @@ public interface OnDragActionListener {
 
     void onOuterDragEntered(DragEvent event, int position);
 
+    void onOuterDragDropped(DragEvent event, int position);
+
     void onOuterDragExited(int position);
 }

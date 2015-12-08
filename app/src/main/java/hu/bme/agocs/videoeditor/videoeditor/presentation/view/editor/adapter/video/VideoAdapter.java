@@ -36,6 +36,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
     private OnDragActionListener dragActionListener;
     private float scale;
 
+    int highlightedPosition = -1;
+
     public VideoAdapter(OnDragActionListener dragActionListener) {
         super();
         this.dragActionListener = dragActionListener;
@@ -69,6 +71,10 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
                         .into(holder.videoChannelThumbnailIV);
                 break;
             case PICTURE:
+                ImageManager.getInstance().getPicasso()
+                        .load(mediaObject.getFilePath())
+                        .placeholder(android.R.drawable.progress_indeterminate_horizontal)
+                        .into(holder.videoChannelThumbnailIV);
                 break;
         }
         String[] pathParts = mediaObject.getFilePath().split("/");
@@ -88,6 +94,12 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
             }
         }
 
+        if (position == highlightedPosition) {
+            holder.videoChannelInterceptHighlightLayer.setVisibility(View.VISIBLE);
+        } else {
+            holder.videoChannelInterceptHighlightLayer.setVisibility(View.GONE);
+        }
+
         ViewGroup.LayoutParams params = holder.videoChannelCard.getLayoutParams();
         int newWidth = (int) (scale * 2);
         if (mediaObject.getMediaInfo() != null && mediaObject.getMediaInfo().getFormat() != null) {
@@ -101,6 +113,13 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
     @Override
     public int getItemCount() {
         return data.size();
+    }
+
+    public MediaObject getItem(int position) {
+        if (data.size() > position) {
+            return data.get(position);
+        }
+        return null;
     }
 
     @Override
@@ -145,5 +164,15 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
     public void removeOuterDragItem(int position) {
         data.remove(position);
         notifyItemRemoved(position);
+    }
+
+    public void highlightItem(int position) {
+        this.highlightedPosition = position;
+        notifyDataSetChanged();
+    }
+
+    public void removeHighlight() {
+        this.highlightedPosition = -1;
+        notifyDataSetChanged();
     }
 }

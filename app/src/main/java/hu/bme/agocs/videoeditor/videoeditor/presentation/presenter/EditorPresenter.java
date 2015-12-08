@@ -1,5 +1,7 @@
 package hu.bme.agocs.videoeditor.videoeditor.presentation.presenter;
 
+import android.util.Log;
+
 import com.hannesdorfmann.mosby.mvp.MvpBasePresenter;
 
 import java.util.ArrayList;
@@ -37,18 +39,41 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
     }
 
     public void insertNewPictureIntoWorkbench(String picPath) {
-        //Subscription subscription =
+        Subscription subscription = ContentManager.getInstance()
+                .processNewPictureImport(picPath)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(success -> {
+                    if (isViewAttached()) {
+                        getView().informWorkbenchFragment();
+                    }
+                }, throwable -> {
+                    throwable.printStackTrace();
+                });
+        subscriptions.add(subscription);
     }
 
     public void insertNewAudioIntoWorkbench(String audioPath) {
-
+        Subscription subscription = ContentManager.getInstance()
+                .processNewAudioImport(audioPath)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(success -> {
+                    if (isViewAttached()) {
+                        getView().informWorkbenchFragment();
+                    }
+                }, throwable -> {
+                    throwable.printStackTrace();
+                });
+        subscriptions.add(subscription);
     }
 
     public void insertNewVideoIntoWorkbench(String videoPath) {
-        Subscription subscription = ContentManager.getInstance().processNewVideoImport(videoPath)
+        Subscription subscription = ContentManager.getInstance()
+                .processNewVideoImport(videoPath)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(mediaObject -> {
+                .subscribe(success -> {
                     if (isViewAttached()) {
                         getView().informWorkbenchFragment();
                     }
@@ -85,6 +110,19 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                     if (isViewAttached()) {
                         getView().showProgressDialog(false, 0);
                     }
+                }, throwable -> {
+                    throwable.printStackTrace();
+                });
+        subscriptions.add(subscription);
+    }
+
+    public void replaceAudioChannelOnMedia(MediaObject timelineMedia, MediaObject audio) {
+        Subscription subscription = VideoManager.getInstance()
+                .replaceAudioOnMedia(timelineMedia, audio)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(mediaObject -> {
+                    Log.d("Editor", "Finished");
                 }, throwable -> {
                     throwable.printStackTrace();
                 });
