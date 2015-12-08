@@ -12,6 +12,7 @@ import hu.bme.agocs.videoeditor.videoeditor.data.entity.MediaObject;
 import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.IEditorActivity;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action0;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
@@ -48,6 +49,9 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                         getView().informWorkbenchFragment();
                     }
                 }, throwable -> {
+                    if (isViewAttached()) {
+                        getView().showErrorDialog(throwable);
+                    }
                     throwable.printStackTrace();
                 });
         subscriptions.add(subscription);
@@ -63,6 +67,9 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                         getView().informWorkbenchFragment();
                     }
                 }, throwable -> {
+                    if (isViewAttached()) {
+                        getView().showErrorDialog(throwable);
+                    }
                     throwable.printStackTrace();
                 });
         subscriptions.add(subscription);
@@ -78,6 +85,9 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                         getView().informWorkbenchFragment();
                     }
                 }, throwable -> {
+                    if (isViewAttached()) {
+                        getView().showErrorDialog(throwable);
+                    }
                     throwable.printStackTrace();
                 });
         subscriptions.add(subscription);
@@ -93,6 +103,9 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                         getView().clearTimeLineAdapter();
                     }
                 }, throwable -> {
+                    if (isViewAttached()) {
+                        getView().showErrorDialog(throwable);
+                    }
                     throwable.printStackTrace();
                 });
         subscriptions.add(subscription);
@@ -111,19 +124,39 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                         getView().showProgressDialog(false, 0);
                     }
                 }, throwable -> {
+                    if (isViewAttached()) {
+                        getView().showErrorDialog(throwable);
+                    }
                     throwable.printStackTrace();
                 });
         subscriptions.add(subscription);
     }
 
     public void replaceAudioChannelOnMedia(MediaObject timelineMedia, MediaObject audio) {
+        if (isViewAttached()) {
+            getView().showProgressDialog(true, 1);
+        }
         Subscription subscription = VideoManager.getInstance()
                 .replaceAudioOnMedia(timelineMedia, audio)
+                .flatMap(mediaObject -> ContentManager.getInstance()
+                        .storeMediaObject(mediaObject)
+                        .map(isInserted -> mediaObject))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(mediaObject -> {
+                    if (isViewAttached()) {
+                        getView().showProgressDialog(false, 0);
+                        getView().informWorkbenchFragment();
+                        getView().replaceMediaObjectOnTimeline(timelineMedia, mediaObject);
+                        getView().showResultDialog("The audio channel has been replaced. " +
+                                "A new media file has been create on path:\n" + mediaObject.getFilePath()
+                                + "\n The modified media has been added to the timeline.");
+                    }
                     Log.d("Editor", "Finished");
                 }, throwable -> {
+                    if (isViewAttached()) {
+                        getView().showErrorDialog(throwable);
+                    }
                     throwable.printStackTrace();
                 });
         subscriptions.add(subscription);

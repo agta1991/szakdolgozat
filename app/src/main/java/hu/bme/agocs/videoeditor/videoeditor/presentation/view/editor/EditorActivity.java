@@ -1,6 +1,7 @@
 package hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -325,5 +326,38 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
                 .setTitle(R.string.editor_audio_dialog_title)
                 .create();
         audioDialog.show();
+    }
+
+    @Override
+    public void showErrorDialog(Throwable throwable) {
+        showProgressDialog(false, 0);
+        AlertDialog errorDialog = new AlertDialog.Builder(this)
+                .setMessage("An error raised durring the process.\n" + throwable.getMessage())
+                .setNeutralButton("Ok",
+                        (dialog, which) -> {
+                            dialog.dismiss();
+                        })
+                .setCancelable(false)
+                .create();
+        errorDialog.show();
+    }
+
+    @Override
+    public void showResultDialog(String message) {
+        showProgressDialog(false, 0);
+        AlertDialog resultDialog = new AlertDialog.Builder(this)
+                .setMessage(message)
+                .setNeutralButton(R.string.editor_ok,
+                        (dialog, which) -> {
+                            dialog.dismiss();
+                        })
+                .setCancelable(false)
+                .create();
+        resultDialog.show();
+    }
+
+    @Override
+    public void replaceMediaObjectOnTimeline(MediaObject timelineMedia, MediaObject resultObject) {
+        videoChannelAdapter.replaceMedia(timelineMedia, resultObject);
     }
 }

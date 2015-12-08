@@ -175,4 +175,13 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoChannelItemViewHolde
         this.highlightedPosition = -1;
         notifyDataSetChanged();
     }
+
+    public void replaceMedia(MediaObject target, MediaObject with) {
+        if (data.contains(target)) {
+            int targetPosition = data.indexOf(target);
+            data.add(targetPosition, with);
+            data.remove(target);
+            notifyDataSetChanged();
+        }
+    }
 }

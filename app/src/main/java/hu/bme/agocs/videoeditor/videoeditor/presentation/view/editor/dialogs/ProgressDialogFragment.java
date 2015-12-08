@@ -63,6 +63,7 @@ public class ProgressDialogFragment extends DialogFragment {
 
     public void setTaskCount(int taskCount) {
         this.taskCount = taskCount;
+        progressMessageTV.setText("Processing " + actualTask + "/" + taskCount);
     }
 
     @Override

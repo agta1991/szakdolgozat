@@ -27,6 +27,7 @@ import hu.bme.agocs.videoeditor.videoeditor.data.utils.RetryWhenExceptionWithDel
 import hu.bme.agocs.videoeditor.videoeditor.presentation.VideoEditor;
 import rx.Observable;
 import rx.Subscriber;
+import rx.functions.Action0;
 import timber.log.Timber;
 
 /**
@@ -158,6 +159,7 @@ public class VideoManager {
                         File tempFile = new File(tempIntermediate.getFilePath());
                         if (tempFile.exists()) {
                             tempFile.delete();
+                            Timber.d("concatAndDelete - Deleted: " + tempIntermediate.getFilePath());
                         }
                     }
                 });
