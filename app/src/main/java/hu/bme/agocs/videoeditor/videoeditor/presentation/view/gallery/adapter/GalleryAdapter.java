@@ -42,6 +42,7 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.ViewHold
         MediaObject object = data.get(position);
         ImageManager.getInstance().getPicasso()
                 .load(Uri.parse(ImageManager.VIDEO + "://" + object.getFilePath()))
+                .resizeDimen(R.dimen.workbench_item_size, R.dimen.workbench_item_size)
                 .centerCrop()
                 .into(holder.galleryThumbnailIV);
     }

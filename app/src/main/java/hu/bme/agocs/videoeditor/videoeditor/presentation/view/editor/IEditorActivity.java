@@ -26,4 +26,7 @@ public interface IEditorActivity extends MvpView {
     void showResultDialog(String message);
 
     void replaceMediaObjectOnTimeline(MediaObject timelineMedia, MediaObject resultObject);
+
+    void removeHighlightFromItem();
+
 }

@@ -44,29 +44,48 @@ public class FFmpegExecutor {
 
     private void calculateTotalDuration() {
         totalDuration = 1;
-        if (shortest) {
+        boolean isLooping = false;
+        for (Builder.Arg arg : builderArgs) {
+            isLooping |= Builder.LOOP.equals(arg.getArgument());
+        }
+        if (!isLooping) {
+            if (shortest) {
+                if (!durations.isEmpty()) {
+                    if (durations.size() == 1) {
+                        totalDuration = durations.get(durations.size() - 1);
+                    } else {
+                        totalDuration = Long.MAX_VALUE;
+                        for (Long lenght : durations) {
+                            if (lenght < totalDuration) {
+                                totalDuration = lenght;
+                            }
+                        }
+                    }
+                }
+            } else {
+                totalDuration = 0;
+                for (Long lenght : durations) {
+                    totalDuration += lenght;
+                }
+            }
+        } else {
             if (!durations.isEmpty()) {
                 if (durations.size() == 1) {
                     totalDuration = durations.get(durations.size() - 1);
                 } else {
-                    totalDuration = Long.MAX_VALUE;
+                    totalDuration = Long.MIN_VALUE;
                     for (Long lenght : durations) {
-                        if (lenght < totalDuration) {
+                        if (lenght > totalDuration) {
                             totalDuration = lenght;
                         }
                     }
                 }
             }
-        } else {
-            totalDuration = 0;
-            for (Long lenght : durations) {
-                totalDuration += lenght;
-            }
         }
     }
 
     private String[] prepareCommandArgs() {
-        ArrayList<String> argList = new ArrayList<>();
+        /*ArrayList<String> argList = new ArrayList<>();
         boolean isConcat = false;
         int mappingId = 0;
 
@@ -112,7 +131,68 @@ public class FFmpegExecutor {
         }
         argList.add(outputPath);
         Log.d("Prepared FFmpeg arguments: " + argList.toString());
-        return argList.toArray(new String[argList.size()]);
+        return argList.toArray(new String[argList.size()]);*/
+        ArrayList<String> argumentList = new ArrayList<>();
+        int mapPos = 0;
+        String concatParam = "";
+        boolean isConcatenating = false;
+        for (Builder.Arg builderArg : builderArgs) {
+            if (Builder.CONCAT.equals(builderArg.getArgument())) {
+                isConcatenating = true;
+            }
+        }
+        if (isConcatenating) {
+            concatParam = "concat:";
+            for (String path : inputPaths) {
+                if (!concatParam.endsWith(":")) {
+                    concatParam = concatParam + "|";
+                }
+                concatParam = concatParam + path;
+            }
+        }
+        for (Builder.Arg builderArg : builderArgs) {
+            switch (builderArg.getArgument()) {
+                case Builder.INPUT:
+                    if (isConcatenating) {
+                        break;
+                    } else {
+                        argumentList.add(builderArg.getArgument());
+                        if (builderArg.getParameter() != null) {
+                            argumentList.add(builderArg.getParameter());
+                        }
+                        break;
+                    }
+                case Builder.CONCAT:
+                    argumentList.add(Builder.INPUT);
+                    argumentList.add(concatParam);
+                    break;
+                case Builder.MAP:
+                    if (builderArg.getParameter() == null) {
+                        if (mapPos < mapping.size()) {
+                            argumentList.add(Builder.MAP);
+                            argumentList.add(mapping.get(mapPos).fileId + ":" + mapping.get(mapPos).streamId);
+                            mapPos++;
+                        }
+                    } else {
+                        argumentList.add(Builder.MAP);
+                        argumentList.add(builderArg.getParameter());
+                    }
+                    break;
+                case Builder.SHORTEST:
+                    shortest = true;
+                    //Must not break!!!
+                default:
+                    argumentList.add(builderArg.getArgument());
+                    if (builderArg.getParameter() != null) {
+                        argumentList.add(builderArg.getParameter());
+                    }
+            }
+        }
+
+        argumentList.add(outputPath);
+
+        android.util.Log.d("Prepared FFmpeg arguments: ", argumentList.toString());
+        return argumentList.toArray(new String[argumentList.size()]);
     }
 
     public void execute() throws CommandAlreadyRunningException {
@@ -209,88 +289,40 @@ public class FFmpegExecutor {
             this.ffmpeg = ffmpeg;
         }
 
-        public Builder additionalParam(String param) {
-            this.args.add(new Arg(param));
-            return this;
-        }
-
-        public Builder additionalParam(String parameter, String value) {
-            this.args.add(new Arg(parameter, value));
-            return this;
-        }
-
-        public Builder audioBitsreamFilter(String filter) {
-            this.args.add(new Arg(AUDIO_BITSTREAM_FILTER, filter));
-            return this;
-        }
-
         public FFmpegExecutor build() {
             return new FFmpegExecutor(this);
         }
 
-        public Builder buildIndex() {
-            this.args.add(new Arg(CRF, "26"));
-            this.args.add(new Arg(MOVFLAGS, FASTSTART));
+        public Builder input(String inputPath) {
+            inputPaths.add(inputPath);
+            args.add(new Arg(INPUT, inputPath));
             return this;
         }
 
-        public Builder concat() {
-            this.args.add(new Arg(CONCAT));
+        public Builder loopInput(boolean enable) {
+            if (enable) {
+                args.add(new Arg(LOOP, LOOP_ARG));
+            } else {
+                args.remove(new Arg(LOOP));
+            }
+            return this;
+        }
+
+        public Builder enableShortest(boolean enable) {
+            if (enable) {
+                args.add(new Arg(SHORTEST));
+            } else {
+                args.remove(new Arg(SHORTEST));
+            }
             return this;
         }
 
         public Builder enableOutputOverride(boolean enable) {
             if (enable) {
-                this.args.add(new Arg(OUTPUT_OVERRIDE));
-                return this;
+                args.add(new Arg(OUTPUT_OVERRIDE));
+            } else {
+                args.remove(new Arg(OUTPUT_OVERRIDE));
             }
-            this.args.remove(new Arg(OUTPUT_OVERRIDE));
-            return this;
-        }
-
-        public Builder enableShortest(boolean shortest) {
-            if (shortest) {
-                this.args.add(new Arg(SHORTEST));
-                return this;
-            }
-            this.args.remove(new Arg(SHORTEST));
-            return this;
-        }
-
-        public Builder fflags() {
-            this.args.add(new Arg(FLAGS));
-            this.args.add(new Arg(GLOBAL_HEADER));
-            return this;
-        }
-
-        public Builder filterComplex(String filter_complex) {
-            this.args.add(new Arg(FILTER_COMPLEX, filter_complex));
-            return this;
-        }
-
-        public Builder genpts() {
-            this.args.add(new Arg(GENPTS));
-            return this;
-        }
-
-        public Builder input(String inputPath) {
-            this.inputPaths.add(inputPath);
-            this.args.add(new Arg(INPUT, inputPath));
-            return this;
-        }
-
-        public Builder loopInput(boolean shouldLoop) {
-            if (shouldLoop) {
-                this.args.add(new Arg(LOOP, LOOP_ARG));
-                return this;
-            }
-            this.args.remove(new Arg(LOOP));
-            return this;
-        }
-
-        public Builder map(int inputId, int stream) {
-            this.mapping.add(new MapEntry(inputId, stream));
-            this.args.add(new Arg(MAP));
             return this;
         }
 
@@ -299,34 +331,92 @@ public class FFmpegExecutor {
             return this;
         }
 
-        public Builder outputAudioCodec(String codec) {
-            this.args.add(new Arg(AUDIO_CODEC, codec));
+        public Builder outputAudioCodec(String audioCodec) {
+            args.add(new Arg(AUDIO_CODEC, audioCodec));
             return this;
         }
 
-        public Builder outputVideoCodec(String codec) {
-            this.args.add(new Arg(VIDEO_CODEC, codec));
+        public Builder outputVideoCodec(String videoCodec) {
+            args.add(new Arg(VIDEO_CODEC, videoCodec));
             return this;
         }
 
-        public Builder setListener(FFmpegExecutor.FFmpegExecutorListener paramFFmpegExecutorListener) {
-            this.listener = paramFFmpegExecutorListener;
+        public Builder setListener(FFmpegExecutorListener listener) {
+            this.listener = listener;
             return this;
         }
 
-        public Builder strict() {
-            this.args.add(new Arg(STRICT));
+        public Builder concat() {
+            args.add(new Arg(CONCAT));
             return this;
         }
 
-        public Builder threads(int numOfThreads) {
-            this.args.add(new Arg(THREADS, String.valueOf(numOfThreads)));
+        public Builder audioBitsreamFilter(String filter) {
+            args.add(new Arg(AUDIO_BITSTREAM_FILTER, filter));
             return this;
         }
 
         public Builder videoBitsreamFilter(String filter) {
-            this.args.add(new Arg(VIDEO_BITSTREAM_FILTER, filter));
+            args.add(new Arg(VIDEO_BITSTREAM_FILTER, filter));
             return this;
+        }
+
+        public Builder filterComplex(String filter_complex) {
+            args.add(new Arg(FILTER_COMPLEX, filter_complex));
+            return this;
+        }
+
+        public Builder strict() {
+            args.add(new Arg(STRICT));
+            return this;
+        }
+
+        public Builder additionalParam(String argument) {
+            args.add(new Arg(argument));
+            return this;
+        }
+
+        public Builder additionalParam(String argument, String parameter) {
+            args.add(new Arg(argument, parameter));
+            return this;
+        }
+
+        public Builder map(int fileId, int streamId) {
+            mapping.add(new MapEntry(fileId, streamId));
+            args.add(new Arg(MAP));
+            return this;
+        }
+
+        public Builder fflags() {
+            args.add(new Arg(FLAGS));
+            args.add(new Arg(GLOBAL_HEADER));
+            return this;
+        }
+
+        public Builder genpts() {
+            args.add(new Arg(GENPTS));
+            return this;
+        }
+
+        public Builder threads(int threadCount) {
+            args.add(new Arg(THREADS, String.valueOf(threadCount)));
+            return this;
+        }
+
+        public Builder buildIndex() {
+            args.add(new Arg(CRF, "26"));  //Medium quality
+            args.add(new Arg(MOVFLAGS, FASTSTART));
+            return this;
+        }
+
+        protected class MapEntry {
+            public int fileId;
+            public int streamId;
+
+            public MapEntry(int fileId, int streamId) {
+                this.fileId = fileId;
+                this.streamId = streamId;
+            }
         }
 
         public class Arg {
@@ -342,33 +432,25 @@ public class FFmpegExecutor {
                 this.parameter = parameter;
             }
 
-            public boolean equals(Object o) {
-                if (!(o instanceof Arg)) {
+            @Override
+            public boolean equals(Object other) {
+                if (!(other instanceof Arg)) {
                     return false;
                 }
-                return this.argument.equals(((Arg) o).getArgument());
+                return argument.equals(((Arg) other).getArgument());
+            }
+
+            @Override
+            public int hashCode() {
+                return argument.hashCode();
             }
 
             public String getArgument() {
-                return this.argument;
+                return argument;
             }
 
             public String getParameter() {
-                return this.parameter;
-            }
-
-            public int hashCode() {
-                return this.argument.hashCode();
-            }
-        }
-
-        protected class MapEntry {
-            public int fileId;
-            public int streamId;
-
-            public MapEntry(int fieldId, int streamId) {
-                this.fileId = fieldId;
-                this.streamId = streamId;
+                return parameter;
             }
         }
     }

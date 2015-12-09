@@ -10,6 +10,7 @@
         android:layout_width="@dimen/workbench_item_size"
         android:layout_height="@dimen/workbench_item_size"
         android:layout_gravity="center"
+        android:layout_margin="8dp"
         app:cardBackgroundColor="@color/item_normal_bg"
         app:cardCornerRadius="5dp"
         app:cardUseCompatPadding="true"

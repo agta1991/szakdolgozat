@@ -118,4 +118,13 @@ public class FileUtils {
         }
         return null;
     }
+
+    public static void changePermission(String localPath, String permission) {
+        try {
+            Process chmod = Runtime.getRuntime().exec("chmod " + permission + " " + localPath);
+            chmod.waitFor();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -77,8 +77,8 @@ public class FFprobe implements FFprobeInterface {
             throw new CommandAlreadyRunningException("FFprobe command is already running, you are only allowed to run single command at a time");
         }
         if (cmd.length != 0) {
-            String[] ffmpegBinary = new String[]{FileUtils.getFFprobe(context, environvenmentVars)};
-            String[] command = concatenate(ffmpegBinary, cmd);
+            String[] ffprobe = new String[]{FileUtils.getFFprobe(context, environvenmentVars)};
+            String[] command = concatenate(ffprobe, cmd);
             ffprobeExecuteAsyncTask = new FFprobeExecuteAsyncTask(command, timeout, ffprobeExecuteResponseHandler);
             ffprobeExecuteAsyncTask.execute();
         } else {

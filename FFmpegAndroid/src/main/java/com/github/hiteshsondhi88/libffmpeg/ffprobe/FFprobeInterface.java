@@ -34,10 +34,10 @@ public interface FFprobeInterface {
      * Executes a command
      *
      * @param cmd                          command to execute
-     * @param ffmpegExecuteResponseHandler {@link ExecuteResponseHandler}
+     * @param ffprobeExecuteResponseHandler {@link ExecuteResponseHandler}
      * @throws CommandAlreadyRunningException
      */
-    void execute(String[] cmd, ExecuteResponseHandler ffmpegExecuteResponseHandler) throws CommandAlreadyRunningException;
+    void execute(String[] cmd, ExecuteResponseHandler ffprobeExecuteResponseHandler) throws CommandAlreadyRunningException;
 
     /**
      * Tells FFprobe version currently on device

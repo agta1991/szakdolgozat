@@ -359,5 +359,11 @@ public class EditorActivity extends MvpActivity<IEditorActivity, EditorPresenter
     @Override
     public void replaceMediaObjectOnTimeline(MediaObject timelineMedia, MediaObject resultObject) {
         videoChannelAdapter.replaceMedia(timelineMedia, resultObject);
+        videoChannelAdapter.removeHighlight();
+    }
+
+    @Override
+    public void removeHighlightFromItem() {
+        videoChannelAdapter.removeHighlight();
     }
 }

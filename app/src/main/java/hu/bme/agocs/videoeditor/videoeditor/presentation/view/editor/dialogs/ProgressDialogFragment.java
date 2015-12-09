@@ -2,6 +2,8 @@ package hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.dialogs;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
@@ -49,6 +51,7 @@ public class ProgressDialogFragment extends DialogFragment {
         if (getDialog() != null) {
             getDialog().requestWindowFeature(Window.FEATURE_NO_TITLE);
             getDialog().setCancelable(false);
+            getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
 
         return view;
@@ -58,12 +61,14 @@ public class ProgressDialogFragment extends DialogFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         EventBus.getDefault().register(this);
+        progressMessageTV.setText("Processing " + actualTask + "/" + taskCount);
     }
+
+
 
 
     public void setTaskCount(int taskCount) {
         this.taskCount = taskCount;
-        progressMessageTV.setText("Processing " + actualTask + "/" + taskCount);
     }
 
     @Override

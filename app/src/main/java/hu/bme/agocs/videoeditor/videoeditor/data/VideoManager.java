@@ -1,8 +1,15 @@
 package hu.bme.agocs.videoeditor.videoeditor.data;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.media.MediaActionSound;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.widget.Filterable;
 
+import com.github.hiteshsondhi88.libffmpeg.FileUtils;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.CommandAlreadyRunningException;
 import com.github.hiteshsondhi88.libffmpeg.ffmpeg.FFmpeg;
 import com.github.hiteshsondhi88.libffmpeg.ffmpeg.FFmpegExecutor;
@@ -14,7 +21,10 @@ import com.github.hiteshsondhi88.libffmpeg.ffprobe.FFprobeLoadBinaryResponseHand
 import com.google.gson.Gson;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -124,17 +134,19 @@ public class VideoManager {
     }
 
     public Observable<MediaObject> replaceAudioOnMedia(MediaObject sourceMedia, MediaObject audio) {
+        long maxLength;
         switch (sourceMedia.getType()) {
             case VIDEO:
-                long maxLength = Math.min((long) (Double.parseDouble(sourceMedia.getMediaInfo().getFormat().getDuration()) * 1000),
+                maxLength = Math.min((long) (Double.parseDouble(sourceMedia.getMediaInfo().getFormat().getDuration()) * 1000),
                         (long) (Double.parseDouble(audio.getMediaInfo().getFormat().getDuration()) * 1000));
-                return VideoManager.getInstance()
-                        .replaceAudioOnVideo(sourceMedia.getFilePath(), audio.getFilePath(), maxLength)
+                return replaceAudioOnVideo(sourceMedia, audio, maxLength)
+                        .doOnNext(outputPath -> FileUtils.changePermission(outputPath, "777"))
                         .flatMap(outputFile -> analyzeMedia(MediaType.VIDEO, outputFile));
             case PICTURE:
-                return VideoManager.getInstance()
-                        .replaceAudioOnPicture(sourceMedia.getFilePath(), audio.getFilePath(),
-                                (long) (Double.parseDouble(audio.getMediaInfo().getFormat().getDuration()) * 1000))
+                maxLength = (long) (Double.parseDouble(audio.getMediaInfo().getFormat().getDuration()) * 1000);
+                return scaleImageIfNeccessary(sourceMedia.getFilePath())
+                        .flatMap(scaledImagePath -> replaceAudioOnPicture(scaledImagePath, audio.getFilePath(), maxLength))
+                        .doOnNext(outputPath -> FileUtils.changePermission(outputPath, "777"))
                         .flatMap(outputFile -> analyzeMedia(MediaType.VIDEO, outputFile));
             default:
                 return Observable.error(new Throwable("The source media can't be audio."));
@@ -153,6 +165,7 @@ public class VideoManager {
 
     public Observable<MediaObject> concatAndDelete(List<MediaObject> temporaryMediaObjects) {
         return concatIntermediates(temporaryMediaObjects)
+                .doOnNext(outputPath -> FileUtils.changePermission(outputPath, "777"))
                 .flatMap(outputPath -> analyzeMedia(MediaType.VIDEO, outputPath))
                 .doOnCompleted(() -> {
                     for (MediaObject tempIntermediate : temporaryMediaObjects) {
@@ -163,6 +176,66 @@ public class VideoManager {
                         }
                     }
                 });
+    }
+
+    public Observable<String> scaleImageIfNeccessary(String imagePath) {
+        return Observable.create(subscriber -> {
+
+            Bitmap image = null;
+
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            image = BitmapFactory.decodeFile(imagePath, options);
+
+            if (image != null) {
+
+                Log.d("AsyncImageScale", "image is not null");
+                float scale;
+                if (image.getHeight() < image.getWidth()) {
+                    scale = (float) Constants.MAX_PICTURE_SIZE / (float) image.getWidth();
+                } else {
+                    scale = (float) Constants.MAX_PICTURE_SIZE / (float) image.getHeight();
+                }
+                if (scale < 1f) {
+
+                    Log.d("AsyncImageScale", "image have to be scaled");
+                    Matrix scaleMatrix = new Matrix();
+                    scaleMatrix.setScale(scale, scale);
+                    File outputFile = new File(VideoEditor.getContext().getCacheDir().getAbsolutePath()
+                            + File.pathSeparator + new Date().getTime() + ".png");
+                    try {
+                        FileOutputStream fos = new FileOutputStream(outputFile);
+                        Bitmap resizedImage = Bitmap.createBitmap(image, 0, 0, image.getWidth(), image.getHeight(), scaleMatrix, false);
+                        if (resizedImage.getWidth() % 2 == 1) {
+                            resizedImage.setWidth(resizedImage.getWidth() - 1);
+                        }
+                        if (resizedImage.getHeight() % 2 == 1) {
+                            resizedImage.setHeight(resizedImage.getHeight() - 1);
+                        }
+                        resizedImage.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        fos.flush();
+                        fos.close();
+
+                        Log.d("AsyncImageScale", "image is scaled, outputfile: " + outputFile);
+                        subscriber.onNext(outputFile.getAbsolutePath());
+                        subscriber.onCompleted();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        subscriber.onError(e);
+                        Log.d("AsyncImageScale", "image scaling failed");
+                        subscriber.onNext(imagePath);
+                        subscriber.onCompleted();
+                    }
+                } else {
+                    subscriber.onNext(imagePath);
+                    subscriber.onCompleted();
+                }
+            } else {
+                Log.d("AsyncImageScale", "image is null");
+                subscriber.onNext(imagePath);
+                subscriber.onCompleted();
+            }
+        });
     }
 
     public Observable<String> analyzeMediaJson(String path) {
@@ -323,14 +396,14 @@ public class VideoManager {
     }
 
 
-    public Observable<String> replaceAudioOnVideo(String sourcePath, String audioPath, long maxLength) {
+    public Observable<String> replaceAudioOnVideo(MediaObject source, MediaObject audio, long maxLength) {
         return Observable.create(subscriber -> {
             String outputPath = VideoEditor.getBaseDirPath() + String.valueOf(System.nanoTime()) + ".mp4";
 
             FFmpegExecutor.Builder executorBuilder = new FFmpegExecutor.Builder(ffmpeg)
                     .enableOutputOverride(true)
-                    .input(sourcePath)
-                    .input(audioPath)
+                    .input(source.getFilePath())
+                    .input(audio.getFilePath())
                     .outputAudioCodec("aac")
                     .outputVideoCodec("libx264")
                     .strict()

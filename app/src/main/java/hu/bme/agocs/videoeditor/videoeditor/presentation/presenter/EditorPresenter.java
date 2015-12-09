@@ -147,6 +147,7 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                     if (isViewAttached()) {
                         getView().showProgressDialog(false, 0);
                         getView().informWorkbenchFragment();
+                        getView().removeHighlightFromItem();
                         getView().replaceMediaObjectOnTimeline(timelineMedia, mediaObject);
                         getView().showResultDialog("The audio channel has been replaced. " +
                                 "A new media file has been create on path:\n" + mediaObject.getFilePath()
@@ -156,6 +157,7 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                 }, throwable -> {
                     if (isViewAttached()) {
                         getView().showErrorDialog(throwable);
+                        getView().removeHighlightFromItem();
                     }
                     throwable.printStackTrace();
                 });

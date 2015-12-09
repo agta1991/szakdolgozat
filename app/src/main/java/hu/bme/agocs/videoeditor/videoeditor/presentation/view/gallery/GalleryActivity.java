@@ -8,6 +8,8 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.LinearLayout;
 
 import com.hannesdorfmann.mosby.mvp.lce.MvpLceActivity;
@@ -72,6 +74,18 @@ public class GalleryActivity extends MvpLceActivity<LinearLayout, ArrayList<Medi
     @Override
     public void loadData(boolean pullToRefresh) {
         getPresenter().loadMediaInfo();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        boolean defResult = super.onOptionsItemSelected(item);
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+            default:
+                return defResult;
+        }
     }
 
     @Override
