@@ -31,6 +31,8 @@ public class ContentManager {
 
     public static ContentManager instance;
 
+    private DB db;
+
     public static ContentManager getInstance() {
         if (instance == null) {
             instance = new ContentManager();
@@ -39,24 +41,27 @@ public class ContentManager {
     }
 
     private ContentManager() {
+        try {
+            db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
+        } catch (SnappydbException e) {
+            e.printStackTrace();
+        }
     }
 
     public synchronized Observable<ArrayList<MediaObject>> getMediaObjects() {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
+                synchronized (db) {
+                    ArrayList<MediaObject> result = new ArrayList<>();
 
-                ArrayList<MediaObject> result = new ArrayList<>();
+                    if (db.exists(Constants.MEDIA_OBJECTS)) {
+                        MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
+                        result.addAll(Arrays.asList(mediaObjects));
+                    }
 
-                if (db.exists(Constants.MEDIA_OBJECTS)) {
-                    MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
-                    result.addAll(Arrays.asList(mediaObjects));
+                    subscriber.onNext(result);
                 }
-
-                subscriber.onNext(result);
-
-                db.close();
 
             } catch (SnappydbException e) {
                 Timber.e(e, "getMediaObjects");
@@ -70,24 +75,22 @@ public class ContentManager {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
+                synchronized (db) {
+                    ArrayList<MediaObject> currentMediaObjects = new ArrayList<>();
 
-                ArrayList<MediaObject> currentMediaObjects = new ArrayList<>();
+                    if (db.exists(Constants.MEDIA_OBJECTS)) {
+                        MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
+                        currentMediaObjects.addAll(Arrays.asList(mediaObjects));
+                    }
 
-                if (db.exists(Constants.MEDIA_OBJECTS)) {
-                    MediaObject[] mediaObjects = db.getObjectArray(Constants.MEDIA_OBJECTS, MediaObject.class);
-                    currentMediaObjects.addAll(Arrays.asList(mediaObjects));
+                    if (!currentMediaObjects.contains(mediaObject)) {
+                        currentMediaObjects.add(mediaObject);
+                        db.put(Constants.MEDIA_OBJECTS, currentMediaObjects.toArray(new MediaObject[currentMediaObjects.size()]));
+                        subscriber.onNext(true);
+                    } else {
+                        subscriber.onNext(false);
+                    }
                 }
-
-                if (!currentMediaObjects.contains(mediaObject)) {
-                    currentMediaObjects.add(mediaObject);
-                    db.put(Constants.MEDIA_OBJECTS, currentMediaObjects.toArray(new MediaObject[currentMediaObjects.size()]));
-                    subscriber.onNext(true);
-                } else {
-                    subscriber.onNext(false);
-                }
-
-                db.close();
 
             } catch (SnappydbException e) {
                 Timber.e(e, "storeMediaObject");
@@ -101,18 +104,16 @@ public class ContentManager {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
+                synchronized (db) {
+                    ArrayList<MediaObject> result = new ArrayList<>();
 
-                ArrayList<MediaObject> result = new ArrayList<>();
+                    if (db.exists(Constants.TIME_LINE)) {
+                        MediaObject[] mediaObjects = db.getObjectArray(Constants.TIME_LINE, MediaObject.class);
+                        result.addAll(Arrays.asList(mediaObjects));
+                    }
 
-                if (db.exists(Constants.TIME_LINE)) {
-                    MediaObject[] mediaObjects = db.getObjectArray(Constants.TIME_LINE, MediaObject.class);
-                    result.addAll(Arrays.asList(mediaObjects));
+                    subscriber.onNext(result);
                 }
-
-                subscriber.onNext(result);
-
-                db.close();
 
             } catch (SnappydbException e) {
                 Timber.e(e, "getTimeLine");
@@ -126,13 +127,11 @@ public class ContentManager {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
+                synchronized (db) {
+                    db.put(Constants.TIME_LINE, timeLine.toArray(new MediaObject[timeLine.size()]));
 
-                db.put(Constants.TIME_LINE, timeLine.toArray(new MediaObject[timeLine.size()]));
-
-                subscriber.onNext(true);
-
-                db.close();
+                    subscriber.onNext(true);
+                }
 
             } catch (SnappydbException e) {
                 Timber.e(e, "storeTimeLine");
@@ -146,16 +145,14 @@ public class ContentManager {
         return Observable.create(subscriber -> {
 
             try {
-                DB db = DBFactory.open(VideoEditor.getContext(), Constants.DB_FILE_NAME);
-
-                if (db.exists(Constants.TIME_LINE)) {
-                    db.del(Constants.TIME_LINE);
-                    subscriber.onNext(true);
-                } else {
-                    subscriber.onNext(false);
+                synchronized (db) {
+                    if (db.exists(Constants.TIME_LINE)) {
+                        db.del(Constants.TIME_LINE);
+                        subscriber.onNext(true);
+                    } else {
+                        subscriber.onNext(false);
+                    }
                 }
-
-                db.close();
 
             } catch (SnappydbException e) {
                 Timber.e(e, "clearTimeLine");
