@@ -1,11 +1,11 @@
-package com.github.hiteshsondhi88.libffmpeg.cpuhelper;
+package com.github.hiteshsondhi88.libffmpeg;
 
 public class ArmArchHelper {
     static {
         System.loadLibrary("ARM_ARCH");
     }
 
-    native String cpuArchFromJNI();
+    public native String cpuArchFromJNI();
 
     public boolean isARM_v7_CPU(String cpuInfoString) {
         return cpuInfoString.contains("v7");

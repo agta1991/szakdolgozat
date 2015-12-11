@@ -13,6 +13,7 @@ import hu.bme.agocs.videoeditor.videoeditor.presentation.view.editor.IEditorActi
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action0;
+import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
@@ -136,11 +137,15 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
         if (isViewAttached()) {
             getView().showProgressDialog(true, 1);
         }
+        final long[] start = {0};
+        final long[] end = {0};
         Subscription subscription = VideoManager.getInstance()
                 .replaceAudioOnMedia(timelineMedia, audio)
                 .flatMap(mediaObject -> ContentManager.getInstance()
                         .storeMediaObject(mediaObject)
                         .map(isInserted -> mediaObject))
+                .doOnSubscribe(() -> start[0] = System.nanoTime())
+                .doOnNext(mediaObject -> end[0] = System.nanoTime())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(mediaObject -> {
@@ -151,7 +156,8 @@ public class EditorPresenter extends MvpBasePresenter<IEditorActivity> {
                         getView().replaceMediaObjectOnTimeline(timelineMedia, mediaObject);
                         getView().showResultDialog("The audio channel has been replaced. " +
                                 "A new media file has been create on path:\n" + mediaObject.getFilePath()
-                                + "\n The modified media has been added to the timeline.");
+                                + "\n The modified media has been added to the timeline.\n" +
+                                "Bench time: " + String.valueOf(end[0] - start[0]));
                     }
                     Log.d("Editor", "Finished");
                 }, throwable -> {

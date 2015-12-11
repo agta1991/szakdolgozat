@@ -2,6 +2,8 @@ package com.github.hiteshsondhi88.libffmpeg.cpuhelper;
 
 import android.os.Build;
 
+import com.github.hiteshsondhi88.libffmpeg.ArmArchHelper;
+
 public class CpuArchHelper {
 
     public static CpuArch getCpuArch() {
